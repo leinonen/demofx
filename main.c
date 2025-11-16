@@ -17,6 +17,7 @@
 #include "dottunnel.h"
 #include "vectorballs.h"
 #include "textwriter.h"
+#include "synth.h"
 
 // Lookup tables
 int sine_table[256];
@@ -59,8 +60,23 @@ void draw_line(pixel_t *pixels, int x0, int y0, int x1, int y1, pixel_t color) {
 }
 
 int main(int argc, char *argv[]) {
+    // Parse command line arguments
+    int enable_music = 0;
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--music") == 0) {
+            enable_music = 1;
+        } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            printf("DemoFX - Old School Demo Effects\n");
+            printf("Usage: %s [options]\n", argv[0]);
+            printf("Options:\n");
+            printf("  --music    Enable background music (chip-tune synthesizer)\n");
+            printf("  --help     Show this help message\n");
+            return 0;
+        }
+    }
+
     // Initialize SDL
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
         fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
         return 1;
     }
@@ -136,6 +152,12 @@ int main(int argc, char *argv[]) {
     dottunnel_init();
     vectorballs_init();
     textwriter_init();
+
+    // Initialize synthesizer (background music) if enabled
+    if (enable_music) {
+        synth_init();
+        printf("Background music enabled\n");
+    }
 
     // Current effect (0 = plasma, 1 = fire, 2 = tunnel, 3 = starfield, 4 = scroller, 5 = cube, 6 = torus, 7 = raster)
     int current_effect = 0;
@@ -305,6 +327,7 @@ int main(int argc, char *argv[]) {
     dottunnel_cleanup();
     vectorballs_cleanup();
     textwriter_cleanup();
+    synth_cleanup();
 
     free(pixels);
     SDL_DestroyTexture(texture);
