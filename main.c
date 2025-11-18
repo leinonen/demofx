@@ -18,6 +18,7 @@
 #include "vectorballs.h"
 #include "textwriter.h"
 #include "synth.h"
+#include "sinescroller_large.h"
 
 // Lookup tables
 int sine_table[256];
@@ -152,6 +153,7 @@ int main(int argc, char *argv[]) {
     dottunnel_init();
     vectorballs_init();
     textwriter_init();
+    sinescroller_large_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -182,6 +184,7 @@ int main(int argc, char *argv[]) {
     printf("  D = Dot Tunnel\n");
     printf("  V = Vector Balls\n");
     printf("  T = Text Writer\n");
+    printf("  L = Large Sine Scroller\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -250,6 +253,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 13;
                         printf("Switched to Text Writer effect\n");
                         break;
+                    case SDLK_l:
+                        current_effect = 14;
+                        printf("Switched to Large Sine Scroller effect\n");
+                        break;
                 }
             }
         }
@@ -300,6 +307,9 @@ int main(int argc, char *argv[]) {
             case 13:
                 textwriter_update(pixels, frame_time);
                 break;
+            case 14:
+                sinescroller_large_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -327,6 +337,7 @@ int main(int argc, char *argv[]) {
     dottunnel_cleanup();
     vectorballs_cleanup();
     textwriter_cleanup();
+    sinescroller_large_cleanup();
     synth_cleanup();
 
     free(pixels);
