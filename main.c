@@ -19,6 +19,7 @@
 #include "textwriter.h"
 #include "synth.h"
 #include "sinescroller_large.h"
+#include "metaballs3d.h"
 
 // Lookup tables
 int sine_table[256];
@@ -154,6 +155,7 @@ int main(int argc, char *argv[]) {
     vectorballs_init();
     textwriter_init();
     sinescroller_large_init();
+    metaballs3d_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -185,6 +187,7 @@ int main(int argc, char *argv[]) {
     printf("  V = Vector Balls\n");
     printf("  T = Text Writer\n");
     printf("  L = Large Sine Scroller\n");
+    printf("  B = 3D Metaballs (Marching Cubes)\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -257,6 +260,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 14;
                         printf("Switched to Large Sine Scroller effect\n");
                         break;
+                    case SDLK_b:
+                        current_effect = 15;
+                        printf("Switched to 3D Metaballs (Marching Cubes) effect\n");
+                        break;
                 }
             }
         }
@@ -310,6 +317,9 @@ int main(int argc, char *argv[]) {
             case 14:
                 sinescroller_large_update(pixels, frame_time);
                 break;
+            case 15:
+                metaballs3d_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -338,6 +348,7 @@ int main(int argc, char *argv[]) {
     vectorballs_cleanup();
     textwriter_cleanup();
     sinescroller_large_cleanup();
+    metaballs3d_cleanup();
     synth_cleanup();
 
     free(pixels);
