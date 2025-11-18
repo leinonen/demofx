@@ -24,6 +24,7 @@
 #include "voxel.h"
 #include "bumpmap.h"
 #include "kaleidoscope.h"
+#include "raytracer.h"
 
 // Lookup tables
 int sine_table[256];
@@ -164,6 +165,7 @@ int main(int argc, char *argv[]) {
     voxel_init();
     bumpmap_init();
     kaleidoscope_init();
+    raytracer_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -200,6 +202,7 @@ int main(int argc, char *argv[]) {
     printf("  X = Voxel Landscape\n");
     printf("  N = Bump Mapping\n");
     printf("  K = Kaleidoscope\n");
+    printf("  R = Raytracer\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -292,6 +295,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 19;
                         printf("Switched to Kaleidoscope effect\n");
                         break;
+                    case SDLK_r:
+                        current_effect = 20;
+                        printf("Switched to Raytracer effect\n");
+                        break;
                 }
             }
         }
@@ -360,6 +367,9 @@ int main(int argc, char *argv[]) {
             case 19:
                 kaleidoscope_update(pixels, frame_time);
                 break;
+            case 20:
+                raytracer_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -393,6 +403,7 @@ int main(int argc, char *argv[]) {
     voxel_cleanup();
     bumpmap_cleanup();
     kaleidoscope_cleanup();
+    raytracer_cleanup();
     synth_cleanup();
 
     free(pixels);
