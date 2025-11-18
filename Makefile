@@ -7,7 +7,7 @@ LIBS = -lSDL2 -lm
 TARGET = demofx
 
 # Source files
-SOURCES = main.c plasma.c fire.c tunnel.c starfield.c scroller.c cube.c torus.c raster.c twister.c rotozoom.c metaballs.c dottunnel.c vectorballs.c textwriter.c synth.c sinescroller_large.c metaballs3d.c ripple.c voxel.c
+SOURCES = main.c plasma.c fire.c tunnel.c starfield.c scroller.c cube.c torus.c raster.c twister.c rotozoom.c metaballs.c dottunnel.c vectorballs.c textwriter.c synth.c sinescroller_large.c metaballs3d.c ripple.c voxel.c bumpmap.c
 
 # Object files
 OBJECTS = $(SOURCES:.c=.o)

@@ -22,6 +22,7 @@
 #include "metaballs3d.h"
 #include "ripple.h"
 #include "voxel.h"
+#include "bumpmap.h"
 
 // Lookup tables
 int sine_table[256];
@@ -160,6 +161,7 @@ int main(int argc, char *argv[]) {
     metaballs3d_init();
     ripple_init();
     voxel_init();
+    bumpmap_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -194,6 +196,7 @@ int main(int argc, char *argv[]) {
     printf("  B = 3D Metaballs (Marching Cubes)\n");
     printf("  W = Water Ripples\n");
     printf("  X = Voxel Landscape\n");
+    printf("  N = Bump Mapping\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -278,6 +281,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 17;
                         printf("Switched to Voxel Landscape effect\n");
                         break;
+                    case SDLK_n:
+                        current_effect = 18;
+                        printf("Switched to Bump Mapping effect\n");
+                        break;
                 }
             }
         }
@@ -340,6 +347,9 @@ int main(int argc, char *argv[]) {
             case 17:
                 voxel_update(pixels, frame_time);
                 break;
+            case 18:
+                bumpmap_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -371,6 +381,7 @@ int main(int argc, char *argv[]) {
     metaballs3d_cleanup();
     ripple_cleanup();
     voxel_cleanup();
+    bumpmap_cleanup();
     synth_cleanup();
 
     free(pixels);
