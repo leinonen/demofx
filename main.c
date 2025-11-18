@@ -21,6 +21,7 @@
 #include "sinescroller_large.h"
 #include "metaballs3d.h"
 #include "ripple.h"
+#include "voxel.h"
 
 // Lookup tables
 int sine_table[256];
@@ -158,6 +159,7 @@ int main(int argc, char *argv[]) {
     sinescroller_large_init();
     metaballs3d_init();
     ripple_init();
+    voxel_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -191,6 +193,7 @@ int main(int argc, char *argv[]) {
     printf("  L = Large Sine Scroller\n");
     printf("  B = 3D Metaballs (Marching Cubes)\n");
     printf("  W = Water Ripples\n");
+    printf("  X = Voxel Landscape\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -271,6 +274,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 16;
                         printf("Switched to Water Ripples effect\n");
                         break;
+                    case SDLK_x:
+                        current_effect = 17;
+                        printf("Switched to Voxel Landscape effect\n");
+                        break;
                 }
             }
         }
@@ -330,6 +337,9 @@ int main(int argc, char *argv[]) {
             case 16:
                 ripple_update(pixels, frame_time);
                 break;
+            case 17:
+                voxel_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -360,6 +370,7 @@ int main(int argc, char *argv[]) {
     sinescroller_large_cleanup();
     metaballs3d_cleanup();
     ripple_cleanup();
+    voxel_cleanup();
     synth_cleanup();
 
     free(pixels);
