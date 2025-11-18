@@ -23,6 +23,7 @@
 #include "ripple.h"
 #include "voxel.h"
 #include "bumpmap.h"
+#include "kaleidoscope.h"
 
 // Lookup tables
 int sine_table[256];
@@ -162,6 +163,7 @@ int main(int argc, char *argv[]) {
     ripple_init();
     voxel_init();
     bumpmap_init();
+    kaleidoscope_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -197,6 +199,7 @@ int main(int argc, char *argv[]) {
     printf("  W = Water Ripples\n");
     printf("  X = Voxel Landscape\n");
     printf("  N = Bump Mapping\n");
+    printf("  K = Kaleidoscope\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -285,6 +288,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 18;
                         printf("Switched to Bump Mapping effect\n");
                         break;
+                    case SDLK_k:
+                        current_effect = 19;
+                        printf("Switched to Kaleidoscope effect\n");
+                        break;
                 }
             }
         }
@@ -350,6 +357,9 @@ int main(int argc, char *argv[]) {
             case 18:
                 bumpmap_update(pixels, frame_time);
                 break;
+            case 19:
+                kaleidoscope_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -382,6 +392,7 @@ int main(int argc, char *argv[]) {
     ripple_cleanup();
     voxel_cleanup();
     bumpmap_cleanup();
+    kaleidoscope_cleanup();
     synth_cleanup();
 
     free(pixels);
