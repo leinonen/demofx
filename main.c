@@ -26,6 +26,7 @@
 #include "kaleidoscope.h"
 #include "raytracer.h"
 #include "sierpinski.h"
+#include "particles.h"
 
 // Lookup tables
 int sine_table[256];
@@ -168,6 +169,7 @@ int main(int argc, char *argv[]) {
     kaleidoscope_init();
     raytracer_init();
     sierpinski_init();
+    particles_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -206,6 +208,7 @@ int main(int argc, char *argv[]) {
     printf("  K = Kaleidoscope\n");
     printf("  R = Raytracer\n");
     printf("  S = Sierpinski Pyramid\n");
+    printf("  P = Particle Explosions\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -306,6 +309,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 21;
                         printf("Switched to Sierpinski Pyramid effect\n");
                         break;
+                    case SDLK_p:
+                        current_effect = 22;
+                        printf("Switched to Particle Explosions effect\n");
+                        break;
                 }
             }
         }
@@ -380,6 +387,9 @@ int main(int argc, char *argv[]) {
             case 21:
                 sierpinski_update(pixels, frame_time);
                 break;
+            case 22:
+                particles_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -415,6 +425,7 @@ int main(int argc, char *argv[]) {
     kaleidoscope_cleanup();
     raytracer_cleanup();
     sierpinski_cleanup();
+    particles_cleanup();
     synth_cleanup();
 
     free(pixels);
