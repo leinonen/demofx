@@ -16,7 +16,7 @@
 
 // Music settings
 #define BPM 120
-#define ROWS_PER_PATTERN 16
+#define ROWS_PER_PATTERN 64 // 16 x 4
 #define TICKS_PER_ROW 6
 #define ROWS_PER_BEAT 4
 #define SAMPLES_PER_TICK ((SAMPLE_RATE * 60) / (BPM * ROWS_PER_BEAT * TICKS_PER_ROW))
@@ -115,7 +115,7 @@ static float generate_kick(Channel *ch, float sample_rate) {
     float freq = 60.0f + pitch_env * 100.0f;  // Sweep from ~160Hz to 60Hz
     ch->phase += freq / sample_rate;
 
-    return sine_wave(ch->phase) * amp_env * 0.8f;
+    return sine_wave(ch->phase) * amp_env * 0.58f;
 }
 
 static float generate_snare(Channel *ch, float sample_rate) {
@@ -128,7 +128,7 @@ static float generate_snare(Channel *ch, float sample_rate) {
     ch->phase += 200.0f / sample_rate;
     float tone = sine_wave(ch->phase) * 0.3f;
 
-    return (noise + tone) * amp_env * 0.5f;
+    return (noise + tone) * amp_env * 0.25f;
 }
 
 static float generate_hihat(Channel *ch, float sample_rate) {
@@ -169,120 +169,161 @@ static float generate_lead(Channel *ch, float sample_rate) {
 
 // --- PATTERN DATA (Hardcoded demo track) ---
 
-// Kick pattern (steady trance 4/4)
+// Kick pattern – 4 bars, simple 4/4 with a small fill at the end
 static const PatternNote kick_pattern[ROWS_PER_PATTERN] = {
-    {INST_KICK, NOTE_C2},  // Row 0 - Beat 1
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
+    // Bar 1 (0–15)
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
 
-    {INST_KICK, NOTE_C2},  // Row 4 - Beat 2
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
+    // Bar 2 (16–31)
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
 
-    {INST_KICK, NOTE_C2},  // Row 8 - Beat 3
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
+    // Bar 3 (32–47)
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
 
-    {INST_KICK, NOTE_C2},  // Row 12 - Beat 4
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0}
+    // Bar 4 (48–63) – same 4/4 plus extra kicks for a mini-fill
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_KICK, NOTE_C2}, {INST_KICK, NOTE_C2}
 };
 
-// Snare pattern (disabled)
+
+// Snare pattern – empty bar 1, then backbeat on 2 & 4, with a fill at the very end
 static const PatternNote snare_pattern[ROWS_PER_PATTERN] = {
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
+    // Bar 1 (0–15) – no snare for a clean intro
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
+    // Bar 2 (16–31) – snare on beats 2 & 4 (rows 20, 28)
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},  {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
 
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_NONE, 0}
+    // Bar 3 (32–47) – same backbeat
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},  {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+
+    // Bar 4 (48–63) – backbeat + last-bar fill
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},  {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_SNARE, 0}, {INST_SNARE, 0}, {INST_NONE, 0}
 };
 
-// Hi-hat pattern
+
+// Hi-hat pattern – light groove, then a more driving last bar
 static const PatternNote hihat_pattern[ROWS_PER_PATTERN] = {
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_HIHAT, 0},
-    {INST_NONE, 0},
+    // Bar 1 (0–15) – original pattern
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
 
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_HIHAT, 0},
-    {INST_NONE, 0},
+    // Bar 2 (16–31) – same feel
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
 
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_HIHAT, 0},
-    {INST_NONE, 0},
-    
-    {INST_NONE, 0},
-    {INST_NONE, 0},
-    {INST_HIHAT, NOTE_A2},
-    {INST_HIHAT, 0}
+    // Bar 3 (32–47) – same feel
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
+
+    // Bar 4 (48–63) – more driving 8th-note style hats
+    {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0}
 };
 
-// Bass pattern 
+
+// Bass pattern – 4-bar progression with simple variations
 static const PatternNote bass_pattern[ROWS_PER_PATTERN] = {
-    {INST_NONE, 0},
-    {INST_NONE, NOTE_G2},
-    {INST_BASS, NOTE_G2},
-    {INST_BASS, NOTE_G2},
-    
-    {INST_NONE, 0},      
-    {INST_NONE, NOTE_G2}, 
-    {INST_BASS, NOTE_G2}, 
-    {INST_BASS, NOTE_G3},  
-    
-    {INST_NONE, 0},
-    {INST_NONE, NOTE_G2},
-    {INST_BASS, NOTE_G2},
-    {INST_BASS, NOTE_G2},
-    
-    {INST_NONE, 0},
-    {INST_NONE, NOTE_G2},
-    {INST_BASS, NOTE_G3},
-    {INST_BASS, NOTE_G4} 
+    // Bar 1 (0–15) – original G pattern
+    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G2},
+    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G3},
+    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G2},
+    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G3}, {INST_BASS, NOTE_G4},
+
+    // Bar 2 (16–31) – same as bar 1 (keeps the groove stable)
+    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G2},
+    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G3},
+    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G2},
+    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G3}, {INST_BASS, NOTE_G4},
+
+    // Bar 3 (32–47) – same pattern, transposed to F
+    {INST_NONE, 0},      {INST_NONE, NOTE_F2}, {INST_BASS, NOTE_F2}, {INST_BASS, NOTE_F2},
+    {INST_NONE, 0},      {INST_NONE, NOTE_F2}, {INST_BASS, NOTE_F2}, {INST_BASS, NOTE_F3},
+    {INST_NONE, 0},      {INST_NONE, NOTE_F2}, {INST_BASS, NOTE_F2}, {INST_BASS, NOTE_F2},
+    {INST_NONE, 0},      {INST_NONE, NOTE_F2}, {INST_BASS, NOTE_F3}, {INST_BASS, NOTE_F4},
+
+    // Bar 4 (48–63) – same pattern, transposed to E
+    {INST_NONE, 0},      {INST_NONE, NOTE_E2}, {INST_BASS, NOTE_E2}, {INST_BASS, NOTE_E2},
+    {INST_NONE, 0},      {INST_NONE, NOTE_E2}, {INST_BASS, NOTE_E2}, {INST_BASS, NOTE_E3},
+    {INST_NONE, 0},      {INST_NONE, NOTE_E2}, {INST_BASS, NOTE_E2}, {INST_BASS, NOTE_E2},
+    {INST_NONE, 0},      {INST_NONE, NOTE_E2}, {INST_BASS, NOTE_E3}, {INST_BASS, NOTE_E4}
 };
 
-// Lead pattern
+
+// Lead pattern – 4-bar evolving melody
 static const PatternNote lead_pattern[ROWS_PER_PATTERN] = {
-    {INST_LEAD, NOTE_E4},   // 0
-    {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4},   // 2
-    {INST_NONE, 0},
+    // Bar 1 (0–15) – your original motif
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
 
-    {INST_LEAD, NOTE_A4},   // 4
-    {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4},   // 6
-    {INST_NONE, 0},
+    // Bar 2 (16–31) – variation, reaching up to C5
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
 
-    {INST_LEAD, NOTE_E4},   // 8
-    {INST_NONE, 0},
-    {INST_LEAD, NOTE_D4},   // 10
-    {INST_NONE, 0},
+    // Bar 3 (32–47) – more lift, up to D5 then back down
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
 
-    {INST_LEAD, NOTE_C4},   // 12
-    {INST_NONE, 0},
-    {INST_LEAD, NOTE_D4},   // 14
-    {INST_NONE, 0}
+    // Bar 4 (48–63) – faster run that resolves back to C4
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_F4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0}
 };
+
 
 // --- TRIGGER NOTE ON CHANNEL ---
 
