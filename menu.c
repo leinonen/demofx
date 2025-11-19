@@ -23,39 +23,13 @@
 #define COLOR_WHITE RGB(255, 255, 255)
 #define COLOR_GRAY RGB(100, 100, 100)
 
-// Effect names array
-static const char* effect_names[27] = {
-    "Plasma",
-    "Fire",
-    "Tunnel",
-    "Starfield",
-    "Sine Scroller",
-    "Rotating Cube",
-    "Rotating Torus",
-    "Raster Bars",
-    "Twister",
-    "Rotozoom",
-    "Metaballs",
-    "Dot Tunnel",
-    "Vector Balls",
-    "Text Writer",
-    "Large Sine Scroller",
-    "3D Metaballs",
-    "Water Ripples",
-    "Voxel Landscape",
-    "Bump Mapping",
-    "Kaleidoscope",
-    "Raytracer",
-    "Sierpinski Pyramid",
-    "Particle Explosions",
-    "4D Tesseract",
-    "Matrix Rain",
-    "Matrix Code Rain",
-    "Lens Effect"
-};
+// Effect names and count (provided by main)
+static const char **effect_names = NULL;
+static int effect_count = 0;
 
-void menu_init(void) {
-    // Nothing to initialize for now
+void menu_init(const char **names, int count) {
+    effect_names = names;
+    effect_count = count;
 }
 
 // Draw a horizontal line
@@ -181,7 +155,7 @@ void menu_draw(pixel_t *background_pixels, int selected_index) {
 
     // Draw effect list
     int list_y = MENU_Y + TITLE_HEIGHT + 10;
-    for (int i = 0; i < 27 && i < VISIBLE_ITEMS + scroll_offset; i++) {
+    for (int i = 0; i < effect_count && i < VISIBLE_ITEMS + scroll_offset; i++) {
         if (i < scroll_offset) continue;
 
         int item_y = list_y + (i - scroll_offset) * (ITEM_HEIGHT + 1);
@@ -210,7 +184,7 @@ void menu_draw(pixel_t *background_pixels, int selected_index) {
     if (scroll_offset > 0) {
         draw_text(background_pixels, MENU_X + MENU_WIDTH - 16, list_y - 2, "^", COLOR_CYAN);
     }
-    if (selected_index < 26 && scroll_offset + VISIBLE_ITEMS < 27) {
+    if (selected_index < effect_count - 1 && scroll_offset + VISIBLE_ITEMS < effect_count) {
         draw_text(background_pixels, MENU_X + MENU_WIDTH - 16, list_y + VISIBLE_ITEMS * (ITEM_HEIGHT + 1) - 6, "v", COLOR_CYAN);
     }
 
@@ -229,11 +203,11 @@ void menu_cleanup(void) {
 }
 
 int menu_get_effect_count(void) {
-    return 27;
+    return effect_count;
 }
 
 const char* menu_get_effect_name(int index) {
-    if (index >= 0 && index < 27) {
+    if (index >= 0 && index < effect_count && effect_names != NULL) {
         return effect_names[index];
     }
     return "Unknown";

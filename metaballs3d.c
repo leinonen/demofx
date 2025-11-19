@@ -661,6 +661,11 @@ static void draw_triangle(pixel_t *pixels, triangle_t *tri) {
 void metaballs3d_init(void) {
     // Allocate triangle buffer
     triangles = malloc(MAX_TRIANGLES * sizeof(triangle_t));
+    if (!triangles) {
+        fprintf(stderr, "Failed to allocate metaballs3d triangle buffer (%zu bytes)\n",
+                MAX_TRIANGLES * sizeof(triangle_t));
+        return;
+    }
 
     // Initialize metaballs with different positions and sizes
     for (int i = 0; i < NUM_METABALLS; i++) {
@@ -688,6 +693,13 @@ void metaballs3d_init(void) {
 
 // Update and render the effect
 void metaballs3d_update(pixel_t *pixels, uint32_t time) {
+    /* Check if initialization succeeded */
+    if (!triangles) {
+        /* Clear screen to black on error */
+        memset(pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+        return;
+    }
+
     // Clear screen
     memset(pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
 

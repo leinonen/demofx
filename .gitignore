@@ -1,3 +1,2 @@
-*.o
-demofx
+build/
 screenshots/

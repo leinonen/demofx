@@ -49,6 +49,48 @@ typedef enum {
     TRANSITION_IN_PROGRESS
 } TransitionState;
 
+// Effect function pointer structure
+typedef struct {
+    void (*init)(void);
+    void (*update)(pixel_t*, uint32_t);
+    void (*cleanup)(void);
+    const char *name;
+} Effect;
+
+// Number of effects
+#define NUM_EFFECTS 27
+
+// Effects array
+static const Effect effects[NUM_EFFECTS] = {
+    {plasma_init, plasma_update, plasma_cleanup, "Plasma"},
+    {fire_init, fire_update, fire_cleanup, "Fire"},
+    {tunnel_init, tunnel_update, tunnel_cleanup, "Tunnel"},
+    {starfield_init, starfield_update, starfield_cleanup, "Starfield"},
+    {scroller_init, scroller_update, scroller_cleanup, "Scroller"},
+    {cube_init, cube_update, cube_cleanup, "Cube"},
+    {torus_init, torus_update, torus_cleanup, "Torus"},
+    {raster_init, raster_update, raster_cleanup, "Raster"},
+    {twister_init, twister_update, twister_cleanup, "Twister"},
+    {rotozoom_init, rotozoom_update, rotozoom_cleanup, "Rotozoom"},
+    {metaballs_init, metaballs_update, metaballs_cleanup, "Metaballs"},
+    {dottunnel_init, dottunnel_update, dottunnel_cleanup, "Dot Tunnel"},
+    {vectorballs_init, vectorballs_update, vectorballs_cleanup, "Vector Balls"},
+    {textwriter_init, textwriter_update, textwriter_cleanup, "Text Writer"},
+    {sinescroller_large_init, sinescroller_large_update, sinescroller_large_cleanup, "Sine Scroller"},
+    {metaballs3d_init, metaballs3d_update, metaballs3d_cleanup, "Metaballs 3D"},
+    {ripple_init, ripple_update, ripple_cleanup, "Ripple"},
+    {voxel_init, voxel_update, voxel_cleanup, "Voxel"},
+    {bumpmap_init, bumpmap_update, bumpmap_cleanup, "Bump Map"},
+    {kaleidoscope_init, kaleidoscope_update, kaleidoscope_cleanup, "Kaleidoscope"},
+    {raytracer_init, raytracer_update, raytracer_cleanup, "Raytracer"},
+    {sierpinski_init, sierpinski_update, sierpinski_cleanup, "Sierpinski"},
+    {particles_init, particles_update, particles_cleanup, "Particles"},
+    {tesseract_init, tesseract_update, tesseract_cleanup, "Tesseract"},
+    {matrix_init, matrix_update, matrix_cleanup, "Matrix"},
+    {matrixcode_init, matrixcode_update, matrixcode_cleanup, "Matrix Code"},
+    {lens_init, lens_update, lens_cleanup, "Lens"}
+};
+
 // Lookup tables
 int sine_table[256];
 int cosine_table[256];
@@ -239,37 +281,19 @@ int main(int argc, char *argv[]) {
     // Initialize lookup tables
     init_tables();
 
-    // Initialize effects
-    plasma_init();
-    fire_init();
-    tunnel_init();
-    starfield_init();
-    scroller_init();
-    cube_init();
-    torus_init();
-    raster_init();
-    twister_init();
-    rotozoom_init();
-    metaballs_init();
-    dottunnel_init();
-    vectorballs_init();
-    textwriter_init();
-    sinescroller_large_init();
-    metaballs3d_init();
-    ripple_init();
-    voxel_init();
-    bumpmap_init();
-    kaleidoscope_init();
-    raytracer_init();
-    sierpinski_init();
-    particles_init();
-    tesseract_init();
-    matrix_init();
-    matrixcode_init();
-    lens_init();
+    // Initialize all effects
+    for (int i = 0; i < NUM_EFFECTS; i++) {
+        effects[i].init();
+    }
+
+    // Extract effect names for menu
+    static const char* effect_names[NUM_EFFECTS];
+    for (int i = 0; i < NUM_EFFECTS; i++) {
+        effect_names[i] = effects[i].name;
+    }
 
     // Initialize menu system
-    menu_init();
+    menu_init(effect_names, NUM_EFFECTS);
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -340,7 +364,7 @@ int main(int argc, char *argv[]) {
                             }
                             break;
                         case SDLK_DOWN:
-                            if (selected_effect < 26) {
+                            if (selected_effect < NUM_EFFECTS - 1) {
                                 selected_effect++;
                             }
                             break;
@@ -362,7 +386,7 @@ int main(int argc, char *argv[]) {
                         case SDLK_LEFT:
                             // Previous effect (with wraparound)
                             if (transition_state == TRANSITION_NONE) {
-                                next_effect = (current_effect - 1 + 27) % 27;
+                                next_effect = (current_effect - 1 + NUM_EFFECTS) % NUM_EFFECTS;
                                 memcpy(transition_buffer, pixels, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
                                 transition_state = TRANSITION_IN_PROGRESS;
                                 transition_start_time = SDL_GetTicks();
@@ -372,7 +396,7 @@ int main(int argc, char *argv[]) {
                         case SDLK_RIGHT:
                             // Next effect (with wraparound)
                             if (transition_state == TRANSITION_NONE) {
-                                next_effect = (current_effect + 1) % 27;
+                                next_effect = (current_effect + 1) % NUM_EFFECTS;
                                 memcpy(transition_buffer, pixels, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
                                 transition_state = TRANSITION_IN_PROGRESS;
                                 transition_start_time = SDL_GetTicks();
@@ -408,35 +432,7 @@ int main(int argc, char *argv[]) {
             }
 
             // Render new effect to temp buffer
-            switch (next_effect) {
-                case 0: plasma_update(temp_buffer, frame_time); break;
-                case 1: fire_update(temp_buffer, frame_time); break;
-                case 2: tunnel_update(temp_buffer, frame_time); break;
-                case 3: starfield_update(temp_buffer, frame_time); break;
-                case 4: scroller_update(temp_buffer, frame_time); break;
-                case 5: cube_update(temp_buffer, frame_time); break;
-                case 6: torus_update(temp_buffer, frame_time); break;
-                case 7: raster_update(temp_buffer, frame_time); break;
-                case 8: twister_update(temp_buffer, frame_time); break;
-                case 9: rotozoom_update(temp_buffer, frame_time); break;
-                case 10: metaballs_update(temp_buffer, frame_time); break;
-                case 11: dottunnel_update(temp_buffer, frame_time); break;
-                case 12: vectorballs_update(temp_buffer, frame_time); break;
-                case 13: textwriter_update(temp_buffer, frame_time); break;
-                case 14: sinescroller_large_update(temp_buffer, frame_time); break;
-                case 15: metaballs3d_update(temp_buffer, frame_time); break;
-                case 16: ripple_update(temp_buffer, frame_time); break;
-                case 17: voxel_update(temp_buffer, frame_time); break;
-                case 18: bumpmap_update(temp_buffer, frame_time); break;
-                case 19: kaleidoscope_update(temp_buffer, frame_time); break;
-                case 20: raytracer_update(temp_buffer, frame_time); break;
-                case 21: sierpinski_update(temp_buffer, frame_time); break;
-                case 22: particles_update(temp_buffer, frame_time); break;
-                case 23: tesseract_update(temp_buffer, frame_time); break;
-                case 24: matrix_update(temp_buffer, frame_time); break;
-                case 25: matrixcode_update(temp_buffer, frame_time); break;
-                case 26: lens_update(temp_buffer, frame_time); break;
-            }
+            effects[next_effect].update(temp_buffer, frame_time);
 
             // Apply transition blend
             transition_apply(current_transition, pixels, transition_buffer, temp_buffer, progress);
@@ -444,90 +440,7 @@ int main(int argc, char *argv[]) {
             // Normal rendering (no transition)
             // Render the currently selected/running effect as background
             int effect_to_render = (app_state == STATE_MENU) ? selected_effect : current_effect;
-
-            switch (effect_to_render) {
-            case 0:
-                plasma_update(pixels, frame_time);
-                break;
-            case 1:
-                fire_update(pixels, frame_time);
-                break;
-            case 2:
-                tunnel_update(pixels, frame_time);
-                break;
-            case 3:
-                starfield_update(pixels, frame_time);
-                break;
-            case 4:
-                scroller_update(pixels, frame_time);
-                break;
-            case 5:
-                cube_update(pixels, frame_time);
-                break;
-            case 6:
-                torus_update(pixels, frame_time);
-                break;
-            case 7:
-                raster_update(pixels, frame_time);
-                break;
-            case 8:
-                twister_update(pixels, frame_time);
-                break;
-            case 9:
-                rotozoom_update(pixels, frame_time);
-                break;
-            case 10:
-                metaballs_update(pixels, frame_time);
-                break;
-            case 11:
-                dottunnel_update(pixels, frame_time);
-                break;
-            case 12:
-                vectorballs_update(pixels, frame_time);
-                break;
-            case 13:
-                textwriter_update(pixels, frame_time);
-                break;
-            case 14:
-                sinescroller_large_update(pixels, frame_time);
-                break;
-            case 15:
-                metaballs3d_update(pixels, frame_time);
-                break;
-            case 16:
-                ripple_update(pixels, frame_time);
-                break;
-            case 17:
-                voxel_update(pixels, frame_time);
-                break;
-            case 18:
-                bumpmap_update(pixels, frame_time);
-                break;
-            case 19:
-                kaleidoscope_update(pixels, frame_time);
-                break;
-            case 20:
-                raytracer_update(pixels, frame_time);
-                break;
-            case 21:
-                sierpinski_update(pixels, frame_time);
-                break;
-            case 22:
-                particles_update(pixels, frame_time);
-                break;
-            case 23:
-                tesseract_update(pixels, frame_time);
-                break;
-            case 24:
-                matrix_update(pixels, frame_time);
-                break;
-            case 25:
-                matrixcode_update(pixels, frame_time);
-                break;
-            case 26:
-                lens_update(pixels, frame_time);
-                break;
-            }
+            effects[effect_to_render].update(pixels, frame_time);
         }
 
         // Draw menu overlay if in menu state
@@ -545,34 +458,10 @@ int main(int argc, char *argv[]) {
         SDL_Delay(16);
     }
 
-    // Cleanup
-    plasma_cleanup();
-    fire_cleanup();
-    tunnel_cleanup();
-    starfield_cleanup();
-    scroller_cleanup();
-    cube_cleanup();
-    torus_cleanup();
-    raster_cleanup();
-    twister_cleanup();
-    rotozoom_cleanup();
-    metaballs_cleanup();
-    dottunnel_cleanup();
-    vectorballs_cleanup();
-    textwriter_cleanup();
-    sinescroller_large_cleanup();
-    metaballs3d_cleanup();
-    ripple_cleanup();
-    voxel_cleanup();
-    bumpmap_cleanup();
-    kaleidoscope_cleanup();
-    raytracer_cleanup();
-    sierpinski_cleanup();
-    particles_cleanup();
-    tesseract_cleanup();
-    matrix_cleanup();
-    matrixcode_cleanup();
-    lens_cleanup();
+    // Cleanup all effects
+    for (int i = 0; i < NUM_EFFECTS; i++) {
+        effects[i].cleanup();
+    }
     menu_cleanup();
     synth_cleanup();
 

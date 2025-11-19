@@ -3,8 +3,8 @@
 
 #include "common.h"
 
-// Initialize menu system
-void menu_init(void);
+// Initialize menu system with effect names
+void menu_init(const char **names, int count);
 
 // Draw menu overlay on top of background pixels
 // selected_index: currently highlighted effect (0-26)

@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 // Lookup tables for tunnel calculation
 static int *distance_table = NULL;
@@ -16,10 +17,18 @@ static pixel_t texture[TEXTURE_SIZE * TEXTURE_SIZE];
 void tunnel_init(void) {
     // Allocate lookup tables
     distance_table = (int *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(int));
-    angle_table = (int *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(int));
+    if (!distance_table) {
+        fprintf(stderr, "Failed to allocate tunnel distance table (%zu bytes)\n",
+                SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(int));
+        return;
+    }
 
-    if (!distance_table || !angle_table) {
-        fprintf(stderr, "Failed to allocate tunnel lookup tables\n");
+    angle_table = (int *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(int));
+    if (!angle_table) {
+        fprintf(stderr, "Failed to allocate tunnel angle table (%zu bytes)\n",
+                SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(int));
+        free(distance_table);
+        distance_table = NULL;
         return;
     }
 
@@ -56,7 +65,10 @@ void tunnel_init(void) {
 }
 
 void tunnel_update(pixel_t *pixels, uint32_t time) {
+    /* Check if initialization succeeded */
     if (!distance_table || !angle_table) {
+        /* Clear screen to black on error */
+        memset(pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
         return;
     }
 

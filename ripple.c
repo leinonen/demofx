@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 static int *ripple_buffer1;
 static int *ripple_buffer2;
@@ -37,8 +38,29 @@ void ripple_init(void) {
     int buffer_size = SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(int);
 
     ripple_buffer1 = (int *)malloc(buffer_size);
+    if (!ripple_buffer1) {
+        fprintf(stderr, "Failed to allocate ripple buffer 1 (%d bytes)\n", buffer_size);
+        return;
+    }
+
     ripple_buffer2 = (int *)malloc(buffer_size);
+    if (!ripple_buffer2) {
+        fprintf(stderr, "Failed to allocate ripple buffer 2 (%d bytes)\n", buffer_size);
+        free(ripple_buffer1);
+        ripple_buffer1 = NULL;
+        return;
+    }
+
     background_texture = (pixel_t *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+    if (!background_texture) {
+        fprintf(stderr, "Failed to allocate ripple background texture (%zu bytes)\n",
+                SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+        free(ripple_buffer1);
+        free(ripple_buffer2);
+        ripple_buffer1 = NULL;
+        ripple_buffer2 = NULL;
+        return;
+    }
 
     /* Initialize buffers to zero (calm water) */
     memset(ripple_buffer1, 0, buffer_size);
@@ -71,6 +93,13 @@ static void make_ripple(int x, int y, int radius, int height) {
 }
 
 void ripple_update(pixel_t *pixels, uint32_t time) {
+    /* Check if initialization succeeded */
+    if (!ripple_buffer1 || !ripple_buffer2 || !background_texture) {
+        /* Clear screen to black on error */
+        memset(pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+        return;
+    }
+
     /* Create automatic ripples at intervals */
     if (time % 800 == 0) {
         int x = 80 + (sine_table[(time / 8) & 255] / 256);

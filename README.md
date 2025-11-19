@@ -88,7 +88,7 @@ make rebuild
 ## Running
 
 ```bash
-./demofx
+./build/demofx
 ```
 
 Or build and run in one step:

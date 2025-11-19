@@ -1,6 +1,8 @@
 #include "bumpmap.h"
 #include <stdlib.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 #define TEXTURE_SIZE 256
 #define TEXTURE_MASK (TEXTURE_SIZE - 1)
@@ -137,14 +139,19 @@ void bumpmap_init(void) {
     // Allocate height map
     height_map = (unsigned char*)malloc(TEXTURE_SIZE * TEXTURE_SIZE);
     if (!height_map) {
-        exit(1);
+        fprintf(stderr, "Failed to allocate bumpmap height map (%d bytes)\n",
+                TEXTURE_SIZE * TEXTURE_SIZE);
+        return;
     }
 
     // Allocate base texture
     base_texture = (pixel_t*)malloc(TEXTURE_SIZE * TEXTURE_SIZE * sizeof(pixel_t));
     if (!base_texture) {
+        fprintf(stderr, "Failed to allocate bumpmap base texture (%zu bytes)\n",
+                TEXTURE_SIZE * TEXTURE_SIZE * sizeof(pixel_t));
         free(height_map);
-        exit(1);
+        height_map = NULL;
+        return;
     }
 
     // Generate base texture
@@ -162,6 +169,13 @@ void bumpmap_init(void) {
 }
 
 void bumpmap_update(pixel_t *pixels, uint32_t time) {
+    /* Check if initialization succeeded */
+    if (!height_map || !base_texture) {
+        /* Clear screen to black on error */
+        memset(pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+        return;
+    }
+
     float t = time * 0.001f;
 
     // Generate animated height map

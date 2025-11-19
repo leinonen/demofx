@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 
 #define MAP_SIZE 1024
 #define MAP_MASK (MAP_SIZE - 1)
@@ -95,7 +96,19 @@ static void generate_colormap(void) {
 
 void voxel_init(void) {
     height_map = (unsigned char *)malloc(MAP_SIZE * MAP_SIZE);
+    if (!height_map) {
+        fprintf(stderr, "Failed to allocate voxel height map (%d bytes)\n", MAP_SIZE * MAP_SIZE);
+        return;
+    }
+
     color_map = (pixel_t *)malloc(MAP_SIZE * MAP_SIZE * sizeof(pixel_t));
+    if (!color_map) {
+        fprintf(stderr, "Failed to allocate voxel color map (%zu bytes)\n",
+                MAP_SIZE * MAP_SIZE * sizeof(pixel_t));
+        free(height_map);
+        height_map = NULL;
+        return;
+    }
 
     generate_heightmap();
     generate_colormap();
@@ -103,6 +116,13 @@ void voxel_init(void) {
 
 /* Voxel space raycasting renderer */
 void voxel_update(pixel_t *pixels, uint32_t time) {
+    /* Check if initialization succeeded */
+    if (!height_map || !color_map) {
+        /* Clear screen to black on error */
+        memset(pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+        return;
+    }
+
     /* Camera parameters */
     float camera_x = 512.0f + 400.0f * sin(time * 0.0003f);
     float camera_y = 512.0f + 400.0f * cos(time * 0.0003f);
