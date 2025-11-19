@@ -29,6 +29,7 @@
 #include "particles.h"
 #include "tesseract.h"
 #include "matrix.h"
+#include "matrixcode.h"
 
 // Lookup tables
 int sine_table[256];
@@ -174,6 +175,7 @@ int main(int argc, char *argv[]) {
     particles_init();
     tesseract_init();
     matrix_init();
+    matrixcode_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -215,6 +217,7 @@ int main(int argc, char *argv[]) {
     printf("  P = Particle Explosions\n");
     printf("  H = 4D Tesseract\n");
     printf("  J = Matrix Rain\n");
+    printf("  C = Matrix Code Rain\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -327,6 +330,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 24;
                         printf("Switched to Matrix Rain effect\n");
                         break;
+                    case SDLK_c:
+                        current_effect = 25;
+                        printf("Switched to Matrix Code Rain effect\n");
+                        break;
                 }
             }
         }
@@ -410,6 +417,9 @@ int main(int argc, char *argv[]) {
             case 24:
                 matrix_update(pixels, frame_time);
                 break;
+            case 25:
+                matrixcode_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -448,6 +458,7 @@ int main(int argc, char *argv[]) {
     particles_cleanup();
     tesseract_cleanup();
     matrix_cleanup();
+    matrixcode_cleanup();
     synth_cleanup();
 
     free(pixels);
