@@ -28,6 +28,7 @@
 #include "sierpinski.h"
 #include "particles.h"
 #include "tesseract.h"
+#include "matrix.h"
 
 // Lookup tables
 int sine_table[256];
@@ -172,6 +173,7 @@ int main(int argc, char *argv[]) {
     sierpinski_init();
     particles_init();
     tesseract_init();
+    matrix_init();
 
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
@@ -212,6 +214,7 @@ int main(int argc, char *argv[]) {
     printf("  S = Sierpinski Pyramid\n");
     printf("  P = Particle Explosions\n");
     printf("  H = 4D Tesseract\n");
+    printf("  J = Matrix Rain\n");
     printf("  ESC = Quit\n");
 
     while (running) {
@@ -320,6 +323,10 @@ int main(int argc, char *argv[]) {
                         current_effect = 23;
                         printf("Switched to 4D Tesseract effect\n");
                         break;
+                    case SDLK_j:
+                        current_effect = 24;
+                        printf("Switched to Matrix Rain effect\n");
+                        break;
                 }
             }
         }
@@ -400,6 +407,9 @@ int main(int argc, char *argv[]) {
             case 23:
                 tesseract_update(pixels, frame_time);
                 break;
+            case 24:
+                matrix_update(pixels, frame_time);
+                break;
         }
 
         // Update texture and render
@@ -437,6 +447,7 @@ int main(int argc, char *argv[]) {
     sierpinski_cleanup();
     particles_cleanup();
     tesseract_cleanup();
+    matrix_cleanup();
     synth_cleanup();
 
     free(pixels);
