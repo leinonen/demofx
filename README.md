@@ -2,6 +2,10 @@
 
 Classic demoscene effects written in C using SDL2, running at the authentic 320x200 resolution.
 
+![DemoFX](docs/images/menu.png)
+
+> A collection of 27 old-school demo scene effects reminiscent of the Amiga/DOS era, featuring plasma waves, 3D graphics, particle systems, and more!
+
 ## Effects Included
 
 1. **Plasma** - Animated colorful plasma waves using sine/cosine patterns
@@ -17,6 +21,24 @@ Classic demoscene effects written in C using SDL2, running at the authentic 320x
 11. **Metaballs** - Organic blob effect with distance field calculations
 12. **Dot Tunnel** - 3D tunnel made of individual colored dots with depth-based sizing
 13. **Vector Balls** - 3D rotating sphere made of 600 colored dots with perspective projection
+14. **Text Writer** - Animated typewriter text effect
+15. **Large Sine Scroller** - Large-format sine wave text scroller
+16. **3D Metaballs** - Three-dimensional metaballs with volumetric rendering
+17. **Water Ripples** - Interactive water ripple simulation
+18. **Voxel Landscape** - Height-mapped voxel terrain renderer
+19. **Bump Mapping** - Real-time bump mapping effect
+20. **Kaleidoscope** - Symmetrical kaleidoscope pattern generator
+21. **Raytracer** - Real-time software raytracer with spheres
+22. **Sierpinski Pyramid** - 3D fractal Sierpinski tetrahedron
+23. **Particle Explosions** - Dynamic particle system with explosions
+24. **4D Tesseract** - Four-dimensional hypercube projection
+25. **Matrix Rain** - Classic Matrix-style falling characters
+26. **Matrix Code Rain** - Enhanced Matrix code rain effect
+27. **Lens Effect** - Magnification lens distortion effect
+
+## Features
+
+- **Optional Chiptune Music** - Enable procedural music synthesis with `--music` flag
 
 ## Requirements
 
@@ -74,22 +96,18 @@ Or build and run in one step:
 make run
 ```
 
+### Options
+
+- `--music` - Enable background music (chip-tune synthesizer)
+- `--help` - Show help message
+
 ## Controls
 
-- **0** - Switch to Rotozoom effect
-- **1** - Switch to Plasma effect
-- **2** - Switch to Fire effect
-- **3** - Switch to Tunnel effect
-- **4** - Switch to Starfield effect
-- **5** - Switch to Sine Scroller effect
-- **6** - Switch to Rotating Cube effect
-- **7** - Switch to Rotating Torus effect
-- **8** - Switch to Raster Bars effect
-- **9** - Switch to Twister effect
-- **M** - Switch to Metaballs effect
-- **D** - Switch to Dot Tunnel effect
-- **V** - Switch to Vector Balls effect
-- **ESC** - Quit
+- **UP/DOWN** - Navigate through the effect menu
+- **ENTER/SPACE** - Launch the selected effect
+- **ESC** - Return to menu (or quit from menu)
+- **ALT+ENTER** - Toggle fullscreen mode
+- **F12** - Save a screenshot (saved to `screenshots/` directory)
 
 ## Technical Details
 
