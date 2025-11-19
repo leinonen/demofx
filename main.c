@@ -200,6 +200,7 @@ int main(int argc, char *argv[]) {
     AppState app_state = STATE_MENU;
     int selected_effect = 0;  // Currently highlighted effect in menu
     int current_effect = 0;   // Currently running effect
+    int is_fullscreen = 0;    // Fullscreen state
 
     // Main loop
     int running = 1;
@@ -208,6 +209,7 @@ int main(int argc, char *argv[]) {
 
     printf("DemoFX - Navigate with UP/DOWN arrows, press ENTER to select\n");
     printf("         Press ESC to return to menu or quit\n");
+    printf("         Press ALT+ENTER to toggle fullscreen\n");
 
     while (running) {
         // Handle events
@@ -215,7 +217,18 @@ int main(int argc, char *argv[]) {
             if (event.type == SDL_QUIT) {
                 running = 0;
             } else if (event.type == SDL_KEYDOWN) {
-                if (app_state == STATE_MENU) {
+                // Check for Alt+Enter to toggle fullscreen
+                if (event.key.keysym.sym == SDLK_RETURN &&
+                    (event.key.keysym.mod & KMOD_ALT)) {
+                    is_fullscreen = !is_fullscreen;
+                    if (is_fullscreen) {
+                        SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+                        printf("Fullscreen mode enabled\n");
+                    } else {
+                        SDL_SetWindowFullscreen(window, 0);
+                        printf("Windowed mode enabled\n");
+                    }
+                } else if (app_state == STATE_MENU) {
                     // Menu navigation
                     switch (event.key.keysym.sym) {
                         case SDLK_ESCAPE:
