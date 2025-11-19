@@ -15,10 +15,11 @@
 #define BUFFER_SIZE 2048
 
 // Music settings
-#define BPM 125
+#define BPM 120
 #define ROWS_PER_PATTERN 16
 #define TICKS_PER_ROW 6
-#define SAMPLES_PER_TICK ((SAMPLE_RATE * 60) / (BPM * 4))
+#define ROWS_PER_BEAT 4
+#define SAMPLES_PER_TICK ((SAMPLE_RATE * 60) / (BPM * ROWS_PER_BEAT * TICKS_PER_ROW))
 
 // Note frequencies (C major scale, multiple octaves)
 #define NOTE_C2  65.41f
@@ -136,7 +137,7 @@ static float generate_hihat(Channel *ch, float sample_rate) {
     float amp_env = expf(-t * 35.0f);  // Very fast decay
 
     (void)sample_rate;  // Unused
-    return noise_wave() * amp_env * 0.3f;
+    return noise_wave() * amp_env * 0.123f;
 }
 
 static float generate_bass(Channel *ch, float sample_rate) {
@@ -150,114 +151,136 @@ static float generate_bass(Channel *ch, float sample_rate) {
 }
 
 static float generate_lead(Channel *ch, float sample_rate) {
-    // Lead: square wave with envelope
+    // Lead: sawtooth + square mix with vibrato for rich synthwave sound
     float t = ch->env_time;
-    float amp_env = 1.0f - expf(-t * 20.0f);  // Fast attack
-    amp_env *= expf(-t * 1.5f);  // Medium decay
+    float amp_env = 1.0f - expf(-t * 15.0f);  // Fast attack
+    amp_env *= expf(-t * 0.8f);  // Longer sustain for melody
 
-    ch->phase += ch->freq / sample_rate;
-    return square_wave(ch->phase) * amp_env * 0.3f;
+    // Add subtle vibrato
+    float vibrato = sinf(t * 6.0f) * 0.003f;
+    ch->phase += (ch->freq * (1.0f + vibrato)) / sample_rate;
+
+    // Mix sawtooth (60%) and square (40%) for richer tone
+    float saw = sawtooth_wave(ch->phase) * 0.6f;
+    float square = square_wave(ch->phase) * 0.4f;
+
+    return (saw + square) * amp_env * 0.35f;
 }
 
 // --- PATTERN DATA (Hardcoded demo track) ---
 
-// Kick pattern (4/4 beat)
+// Kick pattern (steady trance 4/4)
 static const PatternNote kick_pattern[ROWS_PER_PATTERN] = {
-    {INST_KICK, NOTE_C2},  // Row 0
+    {INST_KICK, NOTE_C2},  // Row 0 - Beat 1
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
-    {INST_KICK, NOTE_C2},  // Row 4
+
+    {INST_KICK, NOTE_C2},  // Row 4 - Beat 2
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
-    {INST_KICK, NOTE_C2},  // Row 8
+
+    {INST_KICK, NOTE_C2},  // Row 8 - Beat 3
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
-    {INST_KICK, NOTE_C2},  // Row 12
+
+    {INST_KICK, NOTE_C2},  // Row 12 - Beat 4
     {INST_NONE, 0},
-    {INST_KICK, NOTE_C2},  // Row 14 (extra kick)
+    {INST_NONE, 0},
     {INST_NONE, 0}
 };
 
-// Snare pattern (on 2 and 4)
+// Snare pattern (disabled)
 static const PatternNote snare_pattern[ROWS_PER_PATTERN] = {
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
-    {INST_SNARE, NOTE_C3}, // Row 4
+
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
+
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
-    {INST_SNARE, NOTE_C3}, // Row 12
+    {INST_NONE, 0},
+    
+    {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_NONE, 0}
 };
 
-// Hi-hat pattern (8th notes)
+// Hi-hat pattern
 static const PatternNote hihat_pattern[ROWS_PER_PATTERN] = {
     {INST_NONE, 0},
-    {INST_HIHAT, 0},
     {INST_NONE, 0},
     {INST_HIHAT, 0},
     {INST_NONE, 0},
-    {INST_HIHAT, 0},
+
+    {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_HIHAT, 0},
     {INST_NONE, 0},
-    {INST_HIHAT, 0},
+
+    {INST_NONE, 0},
     {INST_NONE, 0},
     {INST_HIHAT, 0},
     {INST_NONE, 0},
-    {INST_HIHAT, 0},
+    
     {INST_NONE, 0},
+    {INST_NONE, 0},
+    {INST_HIHAT, NOTE_A2},
     {INST_HIHAT, 0}
 };
 
-// Bass pattern (simple bassline)
+// Bass pattern 
 static const PatternNote bass_pattern[ROWS_PER_PATTERN] = {
-    {INST_BASS, NOTE_C2},  // C
     {INST_NONE, 0},
-    {INST_BASS, NOTE_C2},
-    {INST_NONE, 0},
-    {INST_BASS, NOTE_F2},  // F
-    {INST_NONE, 0},
-    {INST_BASS, NOTE_F2},
-    {INST_NONE, 0},
-    {INST_BASS, NOTE_G2},  // G
-    {INST_NONE, 0},
+    {INST_NONE, NOTE_G2},
     {INST_BASS, NOTE_G2},
+    {INST_BASS, NOTE_G2},
+    
+    {INST_NONE, 0},      
+    {INST_NONE, NOTE_G2}, 
+    {INST_BASS, NOTE_G2}, 
+    {INST_BASS, NOTE_G3},  
+    
     {INST_NONE, 0},
-    {INST_BASS, NOTE_C2},  // C
+    {INST_NONE, NOTE_G2},
+    {INST_BASS, NOTE_G2},
+    {INST_BASS, NOTE_G2},
+    
     {INST_NONE, 0},
-    {INST_BASS, NOTE_G2},  // G
-    {INST_NONE, 0}
+    {INST_NONE, NOTE_G2},
+    {INST_BASS, NOTE_G3},
+    {INST_BASS, NOTE_G4} 
 };
 
-// Lead pattern (melody)
+// Lead pattern
 static const PatternNote lead_pattern[ROWS_PER_PATTERN] = {
-    {INST_LEAD, NOTE_C4},  // C
+    {INST_LEAD, NOTE_E4},   // 0
     {INST_NONE, 0},
-    {INST_LEAD, NOTE_E4},  // E
+    {INST_LEAD, NOTE_G4},   // 2
     {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4},  // G
+
+    {INST_LEAD, NOTE_A4},   // 4
     {INST_NONE, 0},
-    {INST_LEAD, NOTE_E4},  // E
+    {INST_LEAD, NOTE_G4},   // 6
     {INST_NONE, 0},
-    {INST_LEAD, NOTE_F4},  // F
+
+    {INST_LEAD, NOTE_E4},   // 8
     {INST_NONE, 0},
-    {INST_LEAD, NOTE_D4},  // D
+    {INST_LEAD, NOTE_D4},   // 10
     {INST_NONE, 0},
-    {INST_LEAD, NOTE_C4},  // C
+
+    {INST_LEAD, NOTE_C4},   // 12
     {INST_NONE, 0},
-    {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4},   // 14
     {INST_NONE, 0}
 };
 
