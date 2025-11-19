@@ -196,12 +196,12 @@ void menu_draw(pixel_t *background_pixels, int selected_index) {
 
             // Draw effect name with cyan glow
             char numbered_name[64];
-            snprintf(numbered_name, sizeof(numbered_name), "%2d. %s", i + 1, effect_names[i]);
+            snprintf(numbered_name, sizeof(numbered_name), "%2d %s", i + 1, effect_names[i]);
             draw_text_with_glow(background_pixels, item_x + 10, item_y, numbered_name, COLOR_CYAN, COLOR_DARK_CYAN);
         } else {
             // Draw unselected effect name
             char numbered_name[64];
-            snprintf(numbered_name, sizeof(numbered_name), "%2d. %s", i + 1, effect_names[i]);
+            snprintf(numbered_name, sizeof(numbered_name), "%2d %s", i + 1, effect_names[i]);
             draw_text(background_pixels, item_x + 10, item_y, numbered_name, COLOR_PURPLE);
         }
     }
