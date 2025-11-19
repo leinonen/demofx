@@ -116,29 +116,6 @@ make run
 - **Rendering:** Software pixel buffer rendered to SDL2 texture
 - **Optimization:** Precalculated lookup tables for sine/cosine and tunnel mapping
 
-## Project Structure
-
-```
-demofx/
-├── main.c          - Main loop, SDL setup, effect switching
-├── common.h        - Shared definitions and constants
-├── plasma.c/h      - Plasma effect implementation
-├── fire.c/h        - Fire effect implementation
-├── tunnel.c/h      - Tunnel effect implementation
-├── starfield.c/h   - Starfield effect implementation
-├── scroller.c/h    - Sine scroller effect implementation
-├── cube.c/h        - Rotating cube effect implementation
-├── torus.c/h       - Rotating torus effect implementation
-├── raster.c/h      - Raster bars effect implementation
-├── twister.c/h     - Twister effect implementation
-├── rotozoom.c/h    - Rotozoom effect implementation
-├── metaballs.c/h   - Metaballs effect implementation
-├── dottunnel.c/h   - Dot tunnel effect implementation
-├── vectorballs.c/h - Vector balls effect implementation
-├── Makefile        - Build configuration
-└── README.md       - This file
-```
-
 ## Customization
 
 You can easily modify the effects:
