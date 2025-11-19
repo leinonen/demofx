@@ -35,12 +35,19 @@
 #include "lens.h"
 #include "menu.h"
 #include "font.h"
+#include "transitions.h"
 
 // Application state
 typedef enum {
     STATE_MENU,
     STATE_RUNNING
 } AppState;
+
+// Transition state
+typedef enum {
+    TRANSITION_NONE,
+    TRANSITION_IN_PROGRESS
+} TransitionState;
 
 // Lookup tables
 int sine_table[256];
@@ -214,6 +221,21 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // Allocate transition buffers
+    pixel_t *transition_buffer = (pixel_t *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+    pixel_t *temp_buffer = (pixel_t *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+    if (!transition_buffer || !temp_buffer) {
+        fprintf(stderr, "Transition buffer allocation failed\n");
+        free(pixels);
+        if (transition_buffer) free(transition_buffer);
+        if (temp_buffer) free(temp_buffer);
+        SDL_DestroyTexture(texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
     // Initialize lookup tables
     init_tables();
 
@@ -261,12 +283,23 @@ int main(int argc, char *argv[]) {
     int current_effect = 0;   // Currently running effect
     int is_fullscreen = 0;    // Fullscreen state
 
+    // Transition state
+    TransitionState transition_state = TRANSITION_NONE;
+    TransitionType current_transition = TRANSITION_CROSSFADE;
+    int next_effect = 0;          // Effect to transition to
+    Uint32 transition_start_time = 0;
+    const Uint32 TRANSITION_DURATION = 500;  // milliseconds
+    int show_transition_name = 0;  // Show transition name briefly
+    Uint32 transition_name_time = 0;
+
     // Main loop
     int running = 1;
     SDL_Event event;
     Uint32 frame_time = 0;
 
     printf("DemoFX - Navigate with UP/DOWN arrows, press ENTER to select\n");
+    printf("         Press LEFT/RIGHT arrows to switch effects while running\n");
+    printf("         Press T to cycle transition types\n");
     printf("         Press ESC to return to menu or quit\n");
     printf("         Press ALT+ENTER to toggle fullscreen\n");
     printf("         Press F12 to save a screenshot\n");
@@ -320,10 +353,39 @@ int main(int argc, char *argv[]) {
                             break;
                     }
                 } else {
-                    // Running effect - only ESC to return to menu
-                    if (event.key.keysym.sym == SDLK_ESCAPE) {
-                        app_state = STATE_MENU;
-                        printf("Returned to menu\n");
+                    // Running effect - ESC, LEFT/RIGHT arrows, T key
+                    switch (event.key.keysym.sym) {
+                        case SDLK_ESCAPE:
+                            app_state = STATE_MENU;
+                            printf("Returned to menu\n");
+                            break;
+                        case SDLK_LEFT:
+                            // Previous effect (with wraparound)
+                            if (transition_state == TRANSITION_NONE) {
+                                next_effect = (current_effect - 1 + 27) % 27;
+                                memcpy(transition_buffer, pixels, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+                                transition_state = TRANSITION_IN_PROGRESS;
+                                transition_start_time = SDL_GetTicks();
+                                printf("Transitioning to: %s\n", menu_get_effect_name(next_effect));
+                            }
+                            break;
+                        case SDLK_RIGHT:
+                            // Next effect (with wraparound)
+                            if (transition_state == TRANSITION_NONE) {
+                                next_effect = (current_effect + 1) % 27;
+                                memcpy(transition_buffer, pixels, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+                                transition_state = TRANSITION_IN_PROGRESS;
+                                transition_start_time = SDL_GetTicks();
+                                printf("Transitioning to: %s\n", menu_get_effect_name(next_effect));
+                            }
+                            break;
+                        case SDLK_t:
+                            // Cycle transition type
+                            current_transition = (TransitionType)((current_transition + 1) % TRANSITION_COUNT);
+                            printf("Transition type: %s\n", transition_names[current_transition]);
+                            show_transition_name = 1;
+                            transition_name_time = SDL_GetTicks();
+                            break;
                     }
                 }
             }
@@ -332,10 +394,58 @@ int main(int argc, char *argv[]) {
         // Update and render
         frame_time = SDL_GetTicks();
 
-        // Render the currently selected/running effect as background
-        int effect_to_render = (app_state == STATE_MENU) ? selected_effect : current_effect;
+        // Handle transitions
+        if (transition_state == TRANSITION_IN_PROGRESS) {
+            Uint32 elapsed = frame_time - transition_start_time;
+            float progress = (float)elapsed / TRANSITION_DURATION;
 
-        switch (effect_to_render) {
+            if (progress >= 1.0f) {
+                // Transition complete
+                progress = 1.0f;
+                transition_state = TRANSITION_NONE;
+                current_effect = next_effect;
+                printf("Transition complete: %s\n", menu_get_effect_name(current_effect));
+            }
+
+            // Render new effect to temp buffer
+            switch (next_effect) {
+                case 0: plasma_update(temp_buffer, frame_time); break;
+                case 1: fire_update(temp_buffer, frame_time); break;
+                case 2: tunnel_update(temp_buffer, frame_time); break;
+                case 3: starfield_update(temp_buffer, frame_time); break;
+                case 4: scroller_update(temp_buffer, frame_time); break;
+                case 5: cube_update(temp_buffer, frame_time); break;
+                case 6: torus_update(temp_buffer, frame_time); break;
+                case 7: raster_update(temp_buffer, frame_time); break;
+                case 8: twister_update(temp_buffer, frame_time); break;
+                case 9: rotozoom_update(temp_buffer, frame_time); break;
+                case 10: metaballs_update(temp_buffer, frame_time); break;
+                case 11: dottunnel_update(temp_buffer, frame_time); break;
+                case 12: vectorballs_update(temp_buffer, frame_time); break;
+                case 13: textwriter_update(temp_buffer, frame_time); break;
+                case 14: sinescroller_large_update(temp_buffer, frame_time); break;
+                case 15: metaballs3d_update(temp_buffer, frame_time); break;
+                case 16: ripple_update(temp_buffer, frame_time); break;
+                case 17: voxel_update(temp_buffer, frame_time); break;
+                case 18: bumpmap_update(temp_buffer, frame_time); break;
+                case 19: kaleidoscope_update(temp_buffer, frame_time); break;
+                case 20: raytracer_update(temp_buffer, frame_time); break;
+                case 21: sierpinski_update(temp_buffer, frame_time); break;
+                case 22: particles_update(temp_buffer, frame_time); break;
+                case 23: tesseract_update(temp_buffer, frame_time); break;
+                case 24: matrix_update(temp_buffer, frame_time); break;
+                case 25: matrixcode_update(temp_buffer, frame_time); break;
+                case 26: lens_update(temp_buffer, frame_time); break;
+            }
+
+            // Apply transition blend
+            transition_apply(current_transition, pixels, transition_buffer, temp_buffer, progress);
+        } else {
+            // Normal rendering (no transition)
+            // Render the currently selected/running effect as background
+            int effect_to_render = (app_state == STATE_MENU) ? selected_effect : current_effect;
+
+            switch (effect_to_render) {
             case 0:
                 plasma_update(pixels, frame_time);
                 break;
@@ -417,6 +527,7 @@ int main(int argc, char *argv[]) {
             case 26:
                 lens_update(pixels, frame_time);
                 break;
+            }
         }
 
         // Draw menu overlay if in menu state
@@ -466,6 +577,8 @@ int main(int argc, char *argv[]) {
     synth_cleanup();
 
     free(pixels);
+    free(transition_buffer);
+    free(temp_buffer);
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

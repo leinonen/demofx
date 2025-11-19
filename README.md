@@ -105,6 +105,8 @@ make run
 
 - **UP/DOWN** - Navigate through the effect menu
 - **ENTER/SPACE** - Launch the selected effect
+- **LEFT/RIGHT arrows** - switch between effects
+- **T** - Change transition type
 - **ESC** - Return to menu (or quit from menu)
 - **ALT+ENTER** - Toggle fullscreen mode
 - **F12** - Save a screenshot (saved to `screenshots/` directory)
