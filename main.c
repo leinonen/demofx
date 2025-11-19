@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <sys/stat.h>
 #include "common.h"
 #include "plasma.h"
 #include "fire.h"
@@ -78,6 +80,63 @@ void draw_line(pixel_t *pixels, int x0, int y0, int x1, int y1, pixel_t color) {
             y0 += sy;
         }
     }
+}
+
+// Save screenshot to file
+void save_screenshot(pixel_t *pixels, const char *effect_name) {
+    // Create screenshots directory if it doesn't exist
+    struct stat st = {0};
+    if (stat("screenshots", &st) == -1) {
+        mkdir("screenshots", 0755);
+    }
+
+    // Generate filename with timestamp
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    char filename[256];
+    snprintf(filename, sizeof(filename),
+             "screenshots/%s_%04d%02d%02d_%02d%02d%02d.bmp",
+             effect_name,
+             t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+             t->tm_hour, t->tm_min, t->tm_sec);
+
+    // Create SDL surface from pixel buffer
+    // Convert to 24-bit format to avoid alpha channel issues in BMP
+    SDL_Surface *temp_surface = SDL_CreateRGBSurfaceFrom(
+        pixels,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        32,
+        SCREEN_WIDTH * sizeof(pixel_t),
+        0xFF000000,  // R mask (bits 24-31)
+        0x00FF0000,  // G mask (bits 16-23)
+        0x0000FF00,  // B mask (bits 8-15)
+        0x000000FF   // A mask (bits 0-7)
+    );
+
+    if (!temp_surface) {
+        fprintf(stderr, "Failed to create surface for screenshot: %s\n", SDL_GetError());
+        return;
+    }
+
+    // Convert to 24-bit RGB format (no alpha) for BMP compatibility
+    SDL_Surface *surface = SDL_ConvertSurfaceFormat(temp_surface, SDL_PIXELFORMAT_RGB24, 0);
+
+    if (!surface) {
+        fprintf(stderr, "Failed to convert surface for screenshot: %s\n", SDL_GetError());
+        SDL_FreeSurface(temp_surface);
+        return;
+    }
+
+    // Save as BMP
+    if (SDL_SaveBMP(surface, filename) == 0) {
+        printf("Screenshot saved: %s\n", filename);
+    } else {
+        fprintf(stderr, "Failed to save screenshot: %s\n", SDL_GetError());
+    }
+
+    SDL_FreeSurface(surface);
+    SDL_FreeSurface(temp_surface);
 }
 
 int main(int argc, char *argv[]) {
@@ -210,6 +269,7 @@ int main(int argc, char *argv[]) {
     printf("DemoFX - Navigate with UP/DOWN arrows, press ENTER to select\n");
     printf("         Press ESC to return to menu or quit\n");
     printf("         Press ALT+ENTER to toggle fullscreen\n");
+    printf("         Press F12 to save a screenshot\n");
 
     while (running) {
         // Handle events
@@ -228,7 +288,14 @@ int main(int argc, char *argv[]) {
                         SDL_SetWindowFullscreen(window, 0);
                         printf("Windowed mode enabled\n");
                     }
-                } else if (app_state == STATE_MENU) {
+                }
+                // Check for F12 to save screenshot
+                else if (event.key.keysym.sym == SDLK_F12) {
+                    int effect = (app_state == STATE_MENU) ? selected_effect : current_effect;
+                    const char *effect_name = menu_get_effect_name(effect);
+                    save_screenshot(pixels, effect_name);
+                }
+                else if (app_state == STATE_MENU) {
                     // Menu navigation
                     switch (event.key.keysym.sym) {
                         case SDLK_ESCAPE:
