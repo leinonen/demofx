@@ -31,6 +31,14 @@
 #include "matrix.h"
 #include "matrixcode.h"
 #include "lens.h"
+#include "menu.h"
+#include "font.h"
+
+// Application state
+typedef enum {
+    STATE_MENU,
+    STATE_RUNNING
+} AppState;
 
 // Lookup tables
 int sine_table[256];
@@ -179,49 +187,27 @@ int main(int argc, char *argv[]) {
     matrixcode_init();
     lens_init();
 
+    // Initialize menu system
+    menu_init();
+
     // Initialize synthesizer (background music) if enabled
     if (enable_music) {
         synth_init();
         printf("Background music enabled\n");
     }
 
-    // Current effect (0 = plasma, 1 = fire, 2 = tunnel, 3 = starfield, 4 = scroller, 5 = cube, 6 = torus, 7 = raster)
-    int current_effect = 0;
+    // Application state
+    AppState app_state = STATE_MENU;
+    int selected_effect = 0;  // Currently highlighted effect in menu
+    int current_effect = 0;   // Currently running effect
 
     // Main loop
     int running = 1;
     SDL_Event event;
     Uint32 frame_time = 0;
 
-    printf("Demo Effects - Controls:\n");
-    printf("  0 = Rotozoom\n");
-    printf("  1 = Plasma\n");
-    printf("  2 = Fire\n");
-    printf("  3 = Tunnel\n");
-    printf("  4 = Starfield\n");
-    printf("  5 = Sine Scroller\n");
-    printf("  6 = Rotating Cube\n");
-    printf("  7 = Rotating Torus\n");
-    printf("  8 = Raster Bars\n");
-    printf("  9 = Twister\n");
-    printf("  M = Metaballs\n");
-    printf("  D = Dot Tunnel\n");
-    printf("  V = Vector Balls\n");
-    printf("  T = Text Writer\n");
-    printf("  L = Large Sine Scroller\n");
-    printf("  B = 3D Metaballs (Marching Cubes)\n");
-    printf("  W = Water Ripples\n");
-    printf("  X = Voxel Landscape\n");
-    printf("  N = Bump Mapping\n");
-    printf("  K = Kaleidoscope\n");
-    printf("  R = Raytracer\n");
-    printf("  S = Sierpinski Pyramid\n");
-    printf("  P = Particle Explosions\n");
-    printf("  H = 4D Tesseract\n");
-    printf("  J = Matrix Rain\n");
-    printf("  C = Matrix Code Rain\n");
-    printf("  E = Lens Effect\n");
-    printf("  ESC = Quit\n");
+    printf("DemoFX - Navigate with UP/DOWN arrows, press ENTER to select\n");
+    printf("         Press ESC to return to menu or quit\n");
 
     while (running) {
         // Handle events
@@ -229,126 +215,47 @@ int main(int argc, char *argv[]) {
             if (event.type == SDL_QUIT) {
                 running = 0;
             } else if (event.type == SDL_KEYDOWN) {
-                switch (event.key.keysym.sym) {
-                    case SDLK_ESCAPE:
-                        running = 0;
-                        break;
-                    case SDLK_0:
-                        current_effect = 9;
-                        printf("Switched to Rotozoom effect\n");
-                        break;
-                    case SDLK_1:
-                        current_effect = 0;
-                        printf("Switched to Plasma effect\n");
-                        break;
-                    case SDLK_2:
-                        current_effect = 1;
-                        printf("Switched to Fire effect\n");
-                        break;
-                    case SDLK_3:
-                        current_effect = 2;
-                        printf("Switched to Tunnel effect\n");
-                        break;
-                    case SDLK_4:
-                        current_effect = 3;
-                        printf("Switched to Starfield effect\n");
-                        break;
-                    case SDLK_5:
-                        current_effect = 4;
-                        printf("Switched to Sine Scroller effect\n");
-                        break;
-                    case SDLK_6:
-                        current_effect = 5;
-                        printf("Switched to Rotating Cube effect\n");
-                        break;
-                    case SDLK_7:
-                        current_effect = 6;
-                        printf("Switched to Rotating Torus effect\n");
-                        break;
-                    case SDLK_8:
-                        current_effect = 7;
-                        printf("Switched to Raster Bars effect\n");
-                        break;
-                    case SDLK_9:
-                        current_effect = 8;
-                        printf("Switched to Twister effect\n");
-                        break;
-                    case SDLK_m:
-                        current_effect = 10;
-                        printf("Switched to Metaballs effect\n");
-                        break;
-                    case SDLK_d:
-                        current_effect = 11;
-                        printf("Switched to Dot Tunnel effect\n");
-                        break;
-                    case SDLK_v:
-                        current_effect = 12;
-                        printf("Switched to Vector Balls effect\n");
-                        break;
-                    case SDLK_t:
-                        current_effect = 13;
-                        printf("Switched to Text Writer effect\n");
-                        break;
-                    case SDLK_l:
-                        current_effect = 14;
-                        printf("Switched to Large Sine Scroller effect\n");
-                        break;
-                    case SDLK_b:
-                        current_effect = 15;
-                        printf("Switched to 3D Metaballs (Marching Cubes) effect\n");
-                        break;
-                    case SDLK_w:
-                        current_effect = 16;
-                        printf("Switched to Water Ripples effect\n");
-                        break;
-                    case SDLK_x:
-                        current_effect = 17;
-                        printf("Switched to Voxel Landscape effect\n");
-                        break;
-                    case SDLK_n:
-                        current_effect = 18;
-                        printf("Switched to Bump Mapping effect\n");
-                        break;
-                    case SDLK_k:
-                        current_effect = 19;
-                        printf("Switched to Kaleidoscope effect\n");
-                        break;
-                    case SDLK_r:
-                        current_effect = 20;
-                        printf("Switched to Raytracer effect\n");
-                        break;
-                    case SDLK_s:
-                        current_effect = 21;
-                        printf("Switched to Sierpinski Pyramid effect\n");
-                        break;
-                    case SDLK_p:
-                        current_effect = 22;
-                        printf("Switched to Particle Explosions effect\n");
-                        break;
-                    case SDLK_h:
-                        current_effect = 23;
-                        printf("Switched to 4D Tesseract effect\n");
-                        break;
-                    case SDLK_j:
-                        current_effect = 24;
-                        printf("Switched to Matrix Rain effect\n");
-                        break;
-                    case SDLK_c:
-                        current_effect = 25;
-                        printf("Switched to Matrix Code Rain effect\n");
-                        break;
-                    case SDLK_e:
-                        current_effect = 26;
-                        printf("Switched to Lens effect\n");
-                        break;
+                if (app_state == STATE_MENU) {
+                    // Menu navigation
+                    switch (event.key.keysym.sym) {
+                        case SDLK_ESCAPE:
+                            running = 0;
+                            break;
+                        case SDLK_UP:
+                            if (selected_effect > 0) {
+                                selected_effect--;
+                            }
+                            break;
+                        case SDLK_DOWN:
+                            if (selected_effect < 26) {
+                                selected_effect++;
+                            }
+                            break;
+                        case SDLK_RETURN:
+                        case SDLK_SPACE:
+                            // Launch selected effect
+                            current_effect = selected_effect;
+                            app_state = STATE_RUNNING;
+                            printf("Running: %s\n", menu_get_effect_name(current_effect));
+                            break;
+                    }
+                } else {
+                    // Running effect - only ESC to return to menu
+                    if (event.key.keysym.sym == SDLK_ESCAPE) {
+                        app_state = STATE_MENU;
+                        printf("Returned to menu\n");
+                    }
                 }
             }
         }
 
-        // Update current effect
+        // Update and render
         frame_time = SDL_GetTicks();
 
-        switch (current_effect) {
+        // Render the currently selected/running effect as background
+        int effect_to_render = (app_state == STATE_MENU) ? selected_effect : current_effect;
+
+        switch (effect_to_render) {
             case 0:
                 plasma_update(pixels, frame_time);
                 break;
@@ -432,6 +339,11 @@ int main(int argc, char *argv[]) {
                 break;
         }
 
+        // Draw menu overlay if in menu state
+        if (app_state == STATE_MENU) {
+            menu_draw(pixels, selected_effect);
+        }
+
         // Update texture and render
         SDL_UpdateTexture(texture, NULL, pixels, SCREEN_WIDTH * sizeof(pixel_t));
         SDL_RenderClear(renderer);
@@ -470,6 +382,7 @@ int main(int argc, char *argv[]) {
     matrix_cleanup();
     matrixcode_cleanup();
     lens_cleanup();
+    menu_cleanup();
     synth_cleanup();
 
     free(pixels);
