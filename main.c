@@ -33,6 +33,7 @@
 #include "matrix.h"
 #include "matrixcode.h"
 #include "lens.h"
+#include "voronoi.h"
 #include "menu.h"
 #include "font.h"
 #include "transitions.h"
@@ -58,7 +59,7 @@ typedef struct {
 } Effect;
 
 // Number of effects
-#define NUM_EFFECTS 27
+#define NUM_EFFECTS 28
 
 // Effects array
 static const Effect effects[NUM_EFFECTS] = {
@@ -88,7 +89,8 @@ static const Effect effects[NUM_EFFECTS] = {
     {tesseract_init, tesseract_update, tesseract_cleanup, "Tesseract"},
     {matrix_init, matrix_update, matrix_cleanup, "Matrix"},
     {matrixcode_init, matrixcode_update, matrixcode_cleanup, "Matrix Code"},
-    {lens_init, lens_update, lens_cleanup, "Lens"}
+    {lens_init, lens_update, lens_cleanup, "Lens"},
+    {voronoi_init, voronoi_update, voronoi_cleanup, "Voronoi"}
 };
 
 // Lookup tables
