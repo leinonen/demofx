@@ -7,6 +7,7 @@
 // Lookup tables for tunnel calculation
 static int *distance_table = NULL;
 static int *angle_table = NULL;
+static uint8_t *fog_table = NULL;
 
 // Tunnel texture size
 #define TEXTURE_SIZE 256
@@ -36,6 +37,16 @@ void tunnel_init(void) {
     int center_x = SCREEN_WIDTH / 2;
     int center_y = SCREEN_HEIGHT / 2;
 
+    fog_table = (uint8_t *)malloc(SCREEN_WIDTH * SCREEN_HEIGHT);
+    if (!fog_table) {
+        fprintf(stderr, "Failed to allocate tunnel fog table\n");
+        free(distance_table);
+        free(angle_table);
+        distance_table = NULL;
+        angle_table = NULL;
+        return;
+    }
+
     for (int y = 0; y < SCREEN_HEIGHT; y++) {
         for (int x = 0; x < SCREEN_WIDTH; x++) {
             int dx = x - center_x;
@@ -48,6 +59,10 @@ void tunnel_init(void) {
             // Angle calculation
             double angle = atan2(dy, dx);
             angle_table[y * SCREEN_WIDTH + x] = (int)(TEXTURE_SIZE * angle / (2 * M_PI)) & (TEXTURE_SIZE - 1);
+
+            // Fog: center = dark (far), edges = bright (near)
+            int fog = (int)(dist * 255 / 100);
+            fog_table[y * SCREEN_WIDTH + x] = (uint8_t)(fog > 255 ? 255 : fog);
         }
     }
 
@@ -74,7 +89,7 @@ void tunnel_update(pixel_t *pixels, uint32_t time) {
 
     // Animation offsets
     int shift_x = (time / 8) & (TEXTURE_SIZE - 1);
-    int shift_y = (time / 4) & (TEXTURE_SIZE - 1);
+    int shift_y = (time / 8) & (TEXTURE_SIZE - 1);
 
     for (int y = 0; y < SCREEN_HEIGHT; y++) {
         for (int x = 0; x < SCREEN_WIDTH; x++) {
@@ -88,8 +103,13 @@ void tunnel_update(pixel_t *pixels, uint32_t time) {
             int tex_x = (d + shift_x) & (TEXTURE_SIZE - 1);
             int tex_y = (a + shift_y) & (TEXTURE_SIZE - 1);
 
-            // Sample texture
-            pixels[idx] = texture[tex_y * TEXTURE_SIZE + tex_x];
+            // Sample texture with depth fog
+            pixel_t p = texture[tex_y * TEXTURE_SIZE + tex_x];
+            int fog = fog_table[idx];
+            int r = ((p >> 24) & 0xFF) * fog / 255;
+            int g = ((p >> 16) & 0xFF) * fog / 255;
+            int b = ((p >> 8) & 0xFF) * fog / 255;
+            pixels[idx] = RGB(r, g, b);
         }
     }
 }
@@ -102,5 +122,9 @@ void tunnel_cleanup(void) {
     if (angle_table) {
         free(angle_table);
         angle_table = NULL;
+    }
+    if (fog_table) {
+        free(fog_table);
+        fog_table = NULL;
     }
 }
