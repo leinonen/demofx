@@ -145,7 +145,7 @@ void menu_draw(pixel_t *background_pixels, int selected_index) {
     const char* title = "DEMOFX SELECTOR";
     int title_x = MENU_X + (MENU_WIDTH - (strlen(title) * 8)) / 2;
     int title_y = MENU_Y + 4;
-    draw_text_with_glow(background_pixels, SCREEN_WIDTH, SCREEN_HEIGHT, title_x, title_y, title, COLOR_CYAN, COLOR_DARK_CYAN);
+    draw_text_with_glow(background_pixels, title_x, title_y, title, COLOR_CYAN, COLOR_DARK_CYAN);
 
     // Calculate scroll offset
     int scroll_offset = 0;
@@ -166,33 +166,33 @@ void menu_draw(pixel_t *background_pixels, int selected_index) {
             draw_filled_rect(background_pixels, MENU_X + 4, item_y - 1, MENU_WIDTH - 8, ITEM_HEIGHT + 1, COLOR_DARK_PURPLE);
 
             // Draw selection indicator
-            draw_text(background_pixels, SCREEN_WIDTH, SCREEN_HEIGHT, item_x, item_y, ">", COLOR_MAGENTA);
+            draw_text(background_pixels, item_x, item_y, ">", COLOR_MAGENTA);
 
             // Draw effect name with cyan glow
             char numbered_name[64];
             snprintf(numbered_name, sizeof(numbered_name), "%2d %s", i + 1, effect_names[i]);
-            draw_text_with_glow(background_pixels, SCREEN_WIDTH, SCREEN_HEIGHT, item_x + 10, item_y, numbered_name, COLOR_CYAN, COLOR_DARK_CYAN);
+            draw_text_with_glow(background_pixels, item_x + 10, item_y, numbered_name, COLOR_CYAN, COLOR_DARK_CYAN);
         } else {
             // Draw unselected effect name
             char numbered_name[64];
             snprintf(numbered_name, sizeof(numbered_name), "%2d %s", i + 1, effect_names[i]);
-            draw_text(background_pixels, SCREEN_WIDTH, SCREEN_HEIGHT, item_x + 10, item_y, numbered_name, COLOR_PURPLE);
+            draw_text(background_pixels, item_x + 10, item_y, numbered_name, COLOR_PURPLE);
         }
     }
 
     // Draw scroll indicator if needed
     if (scroll_offset > 0) {
-        draw_text(background_pixels, SCREEN_WIDTH, SCREEN_HEIGHT, MENU_X + MENU_WIDTH - 16, list_y - 2, "^", COLOR_CYAN);
+        draw_text(background_pixels, MENU_X + MENU_WIDTH - 16, list_y - 2, "^", COLOR_CYAN);
     }
     if (selected_index < effect_count - 1 && scroll_offset + VISIBLE_ITEMS < effect_count) {
-        draw_text(background_pixels, SCREEN_WIDTH, SCREEN_HEIGHT, MENU_X + MENU_WIDTH - 16, list_y + VISIBLE_ITEMS * (ITEM_HEIGHT + 1) - 6, "v", COLOR_CYAN);
+        draw_text(background_pixels, MENU_X + MENU_WIDTH - 16, list_y + VISIBLE_ITEMS * (ITEM_HEIGHT + 1) - 6, "v", COLOR_CYAN);
     }
 
     // Draw controls hint at bottom
     const char* hint = "ENTER=SELECT ESC=QUIT";
     int hint_x = MENU_X + (MENU_WIDTH - (strlen(hint) * 8)) / 2;
     int hint_y = MENU_Y + MENU_HEIGHT - 12;
-    draw_text(background_pixels, SCREEN_WIDTH, SCREEN_HEIGHT, hint_x, hint_y, hint, COLOR_GRAY);
+    draw_text(background_pixels, hint_x, hint_y, hint, COLOR_GRAY);
 
     // Apply scanlines for retro CRT effect
     draw_scanlines(background_pixels);
