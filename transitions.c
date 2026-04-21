@@ -7,7 +7,13 @@ const char *transition_names[TRANSITION_COUNT] = {
     "Crossfade",
     "Horizontal Wipe",
     "Pixelate Dissolve",
-    "Circular Wipe"
+    "Circular Wipe",
+    "Flash",
+    "Checkerboard",
+    "Scanline",
+    "Slide",
+    "Diagonal Wipe",
+    "Zoom"
 };
 
 // Helper: blend two RGBA pixels with alpha
@@ -119,6 +125,104 @@ void transition_circular_wipe(pixel_t *dest, const pixel_t *old_frame,
     }
 }
 
+// 5. Flash: fade to white then reveal new frame
+void transition_flash(pixel_t *dest, const pixel_t *old_frame,
+                     const pixel_t *new_frame, float progress) {
+    pixel_t white = RGB(255, 255, 255);
+    int total_pixels = SCREEN_WIDTH * SCREEN_HEIGHT;
+    if (progress < 0.5f) {
+        float a = progress * 2.0f;
+        for (int i = 0; i < total_pixels; i++)
+            dest[i] = blend_pixels(old_frame[i], white, a);
+    } else {
+        float a = (progress - 0.5f) * 2.0f;
+        for (int i = 0; i < total_pixels; i++)
+            dest[i] = blend_pixels(white, new_frame[i], a);
+    }
+}
+
+// 6. Checkerboard: 8x8 blocks reveal in pseudo-random order
+void transition_checkerboard(pixel_t *dest, const pixel_t *old_frame,
+                             const pixel_t *new_frame, float progress) {
+    for (int y = 0; y < SCREEN_HEIGHT; y++) {
+        int by = y / 8;
+        for (int x = 0; x < SCREEN_WIDTH; x++) {
+            int bx = x / 8;
+            float threshold = ((bx * 3 + by * 7) % 20) / 20.0f;
+            int idx = y * SCREEN_WIDTH + x;
+            dest[idx] = (progress >= threshold) ? new_frame[idx] : old_frame[idx];
+        }
+    }
+}
+
+// 7. Scanline: even lines reveal first, odd lines second
+void transition_scanline(pixel_t *dest, const pixel_t *old_frame,
+                         const pixel_t *new_frame, float progress) {
+    for (int y = 0; y < SCREEN_HEIGHT; y++) {
+        float local = (y % 2 == 0) ? fminf(progress * 2.0f, 1.0f)
+                                   : fmaxf((progress - 0.5f) * 2.0f, 0.0f);
+        for (int x = 0; x < SCREEN_WIDTH; x++) {
+            int idx = y * SCREEN_WIDTH + x;
+            dest[idx] = blend_pixels(old_frame[idx], new_frame[idx], local);
+        }
+    }
+}
+
+// 8. Slide: old frame exits left, new frame enters from right
+void transition_slide(pixel_t *dest, const pixel_t *old_frame,
+                      const pixel_t *new_frame, float progress) {
+    int split_x = (int)(progress * SCREEN_WIDTH);
+    for (int y = 0; y < SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < SCREEN_WIDTH; x++) {
+            int idx = y * SCREEN_WIDTH + x;
+            if (x < split_x) {
+                int src_x = x + (SCREEN_WIDTH - split_x);
+                dest[idx] = new_frame[y * SCREEN_WIDTH + src_x];
+            } else {
+                int src_x = x - split_x;
+                dest[idx] = old_frame[y * SCREEN_WIDTH + src_x];
+            }
+        }
+    }
+}
+
+// 9. Diagonal wipe: sweep from top-left to bottom-right with soft edge
+void transition_diagonal_wipe(pixel_t *dest, const pixel_t *old_frame,
+                              const pixel_t *new_frame, float progress) {
+    float edge = progress * (SCREEN_WIDTH + SCREEN_HEIGHT - 2);
+    for (int y = 0; y < SCREEN_HEIGHT; y++) {
+        for (int x = 0; x < SCREEN_WIDTH; x++) {
+            int idx = y * SCREEN_WIDTH + x;
+            float dist = edge - (x + y);
+            float alpha = dist / 8.0f + 0.5f;
+            if (alpha < 0.0f) alpha = 0.0f;
+            if (alpha > 1.0f) alpha = 1.0f;
+            dest[idx] = blend_pixels(old_frame[idx], new_frame[idx], alpha);
+        }
+    }
+}
+
+// 10. Zoom: old frame zooms in and fades, new frame fades in underneath
+void transition_zoom(pixel_t *dest, const pixel_t *old_frame,
+                     const pixel_t *new_frame, float progress) {
+    float scale = 1.0f + progress;
+    float inv_scale = 1.0f / scale;
+    int cx = SCREEN_WIDTH / 2;
+    int cy = SCREEN_HEIGHT / 2;
+    for (int y = 0; y < SCREEN_HEIGHT; y++) {
+        int sy = cy + (int)((y - cy) * inv_scale);
+        if (sy < 0) sy = 0;
+        if (sy >= SCREEN_HEIGHT) sy = SCREEN_HEIGHT - 1;
+        for (int x = 0; x < SCREEN_WIDTH; x++) {
+            int sx = cx + (int)((x - cx) * inv_scale);
+            if (sx < 0) sx = 0;
+            if (sx >= SCREEN_WIDTH) sx = SCREEN_WIDTH - 1;
+            pixel_t old_sample = old_frame[sy * SCREEN_WIDTH + sx];
+            dest[y * SCREEN_WIDTH + x] = blend_pixels(old_sample, new_frame[y * SCREEN_WIDTH + x], progress);
+        }
+    }
+}
+
 // Helper: apply current transition type
 void transition_apply(TransitionType type, pixel_t *dest,
                      const pixel_t *old_frame, const pixel_t *new_frame,
@@ -135,6 +239,24 @@ void transition_apply(TransitionType type, pixel_t *dest,
             break;
         case TRANSITION_CIRCULAR_WIPE:
             transition_circular_wipe(dest, old_frame, new_frame, progress);
+            break;
+        case TRANSITION_FLASH:
+            transition_flash(dest, old_frame, new_frame, progress);
+            break;
+        case TRANSITION_CHECKERBOARD:
+            transition_checkerboard(dest, old_frame, new_frame, progress);
+            break;
+        case TRANSITION_SCANLINE:
+            transition_scanline(dest, old_frame, new_frame, progress);
+            break;
+        case TRANSITION_SLIDE:
+            transition_slide(dest, old_frame, new_frame, progress);
+            break;
+        case TRANSITION_DIAGONAL_WIPE:
+            transition_diagonal_wipe(dest, old_frame, new_frame, progress);
+            break;
+        case TRANSITION_ZOOM:
+            transition_zoom(dest, old_frame, new_frame, progress);
             break;
         default:
             // Fallback to crossfade

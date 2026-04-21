@@ -9,6 +9,12 @@ typedef enum {
     TRANSITION_HORIZONTAL_WIPE,
     TRANSITION_PIXELATE_DISSOLVE,
     TRANSITION_CIRCULAR_WIPE,
+    TRANSITION_FLASH,
+    TRANSITION_CHECKERBOARD,
+    TRANSITION_SCANLINE,
+    TRANSITION_SLIDE,
+    TRANSITION_DIAGONAL_WIPE,
+    TRANSITION_ZOOM,
     TRANSITION_COUNT
 } TransitionType;
 
@@ -28,6 +34,24 @@ void transition_pixelate_dissolve(pixel_t *dest, const pixel_t *old_frame,
 
 void transition_circular_wipe(pixel_t *dest, const pixel_t *old_frame,
                              const pixel_t *new_frame, float progress);
+
+void transition_flash(pixel_t *dest, const pixel_t *old_frame,
+                     const pixel_t *new_frame, float progress);
+
+void transition_checkerboard(pixel_t *dest, const pixel_t *old_frame,
+                             const pixel_t *new_frame, float progress);
+
+void transition_scanline(pixel_t *dest, const pixel_t *old_frame,
+                         const pixel_t *new_frame, float progress);
+
+void transition_slide(pixel_t *dest, const pixel_t *old_frame,
+                      const pixel_t *new_frame, float progress);
+
+void transition_diagonal_wipe(pixel_t *dest, const pixel_t *old_frame,
+                              const pixel_t *new_frame, float progress);
+
+void transition_zoom(pixel_t *dest, const pixel_t *old_frame,
+                     const pixel_t *new_frame, float progress);
 
 // Helper: apply current transition type
 void transition_apply(TransitionType type, pixel_t *dest,

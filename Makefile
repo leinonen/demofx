@@ -26,9 +26,11 @@ $(BUILD_DIR):
 $(TARGET): $(BUILD_DIR) $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(TARGET) $(LIBS)
 
-# Compile source files
+# Compile source files (generate header dependency files with -MMD)
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+-include $(OBJECTS:.o=.d)
 
 # Clean build artifacts
 clean:

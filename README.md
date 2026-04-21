@@ -36,6 +36,21 @@ Classic demoscene effects written in C using SDL2, running at the authentic 320x
 26. **Matrix Code Rain** - Enhanced Matrix code rain effect
 27. **Lens Effect** - Magnification lens distortion effect
 
+## Transitions
+
+Press **T** while running an effect to cycle through 10 transition types:
+
+1. **Crossfade** - Smooth alpha blend between frames
+2. **Horizontal Wipe** - Left-to-right reveal
+3. **Pixelate Dissolve** - Block-based dissolve, shrinking to full resolution
+4. **Circular Wipe** - Expanding circle from screen center
+5. **Flash** - Fade to white then reveal new frame
+6. **Checkerboard** - 8×8 blocks reveal in pseudo-random order
+7. **Scanline** - Even scanlines first, odd scanlines second (CRT-style)
+8. **Slide** - Old frame exits left, new frame enters from right
+9. **Diagonal Wipe** - Sweep from top-left to bottom-right
+10. **Zoom** - Old frame zooms in and fades, new frame appears underneath
+
 ## Features
 
 - **Optional Chiptune Music** - Enable procedural music synthesis with `--music` flag
