@@ -37,6 +37,7 @@
 #include "spiky_twister.h"
 #include "sdf_march.h"
 #include "parallax.h"
+#include "morph3d.h"
 #include "menu.h"
 #include "font.h"
 #include "transitions.h"
@@ -62,7 +63,7 @@ typedef struct {
 } Effect;
 
 // Number of effects
-#define NUM_EFFECTS 31
+#define NUM_EFFECTS 32
 
 // Effects array
 static const Effect effects[NUM_EFFECTS] = {
@@ -96,7 +97,8 @@ static const Effect effects[NUM_EFFECTS] = {
     {voronoi_init, voronoi_update, voronoi_cleanup, "Voronoi"},
     {spiky_twister_init, spiky_twister_update, spiky_twister_cleanup, "Spiky Twister"},
     {sdf_march_init,    sdf_march_update,    sdf_march_cleanup,    "SDF Raymarcher"},
-    {parallax_init,     parallax_update,     parallax_cleanup,     "Parallax"}
+    {parallax_init,     parallax_update,     parallax_cleanup,     "Parallax"},
+    {morph3d_init,      morph3d_update,      morph3d_cleanup,      "3D Morph"}
 };
 
 // Lookup tables
