@@ -38,6 +38,7 @@
 #include "sdf_march.h"
 #include "parallax.h"
 #include "morph3d.h"
+#include "reaction_diffusion.h"
 #include "menu.h"
 #include "font.h"
 #include "transitions.h"
@@ -63,7 +64,7 @@ typedef struct {
 } Effect;
 
 // Number of effects
-#define NUM_EFFECTS 32
+#define NUM_EFFECTS 33
 
 // Effects array
 static const Effect effects[NUM_EFFECTS] = {
@@ -98,7 +99,8 @@ static const Effect effects[NUM_EFFECTS] = {
     {spiky_twister_init, spiky_twister_update, spiky_twister_cleanup, "Spiky Twister"},
     {sdf_march_init,    sdf_march_update,    sdf_march_cleanup,    "SDF Raymarcher"},
     {parallax_init,     parallax_update,     parallax_cleanup,     "Parallax"},
-    {morph3d_init,      morph3d_update,      morph3d_cleanup,      "3D Morph"}
+    {morph3d_init,      morph3d_update,      morph3d_cleanup,      "3D Morph"},
+    {reaction_diffusion_init, reaction_diffusion_update, reaction_diffusion_cleanup, "React-Diffuse"}
 };
 
 // Lookup tables
