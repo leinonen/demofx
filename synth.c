@@ -15,11 +15,12 @@
 #define BUFFER_SIZE 2048
 
 // Music settings
-#define BPM 120
+#define BPM 150
 #define ROWS_PER_PATTERN 64 // 16 x 4
 #define TICKS_PER_ROW 6
 #define ROWS_PER_BEAT 4
 #define SAMPLES_PER_TICK ((SAMPLE_RATE * 60) / (BPM * ROWS_PER_BEAT * TICKS_PER_ROW))
+#define SAMPLES_PER_ROW (SAMPLES_PER_TICK * TICKS_PER_ROW)
 
 // Note frequencies (C major scale, multiple octaves)
 #define NOTE_C2  65.41f
@@ -60,7 +61,8 @@ typedef enum {
     INST_SNARE,
     INST_HIHAT,
     INST_BASS,
-    INST_LEAD
+    INST_LEAD,
+    INST_HARMONY
 } InstrumentType;
 
 // Channel state
@@ -71,17 +73,23 @@ typedef struct {
     int samples_left;
     float volume;
     float env_time;
+    // Arpeggio state
+    float arp[3];     // chord freqs: root, 3rd, 5th (0 = unused)
+    int   arp_step;
+    int   arp_timer;
 } Channel;
 
 // Pattern note entry
 typedef struct {
     InstrumentType inst;
     float freq;
+    float freq2;   // 2nd arp note (0 = no arp)
+    float freq3;   // 3rd arp note (0 = no arp)
 } PatternNote;
 
 // Global state
 static SDL_AudioDeviceID audio_device;
-static Channel channels[5];  // 5 channels: kick, snare, hihat, bass, lead
+static Channel channels[6];  // kick, snare, hihat, bass, lead, harmony
 static int current_row = 0;
 static int current_tick = 0;
 static int tick_samples = 0;
@@ -92,39 +100,42 @@ static float sine_wave(float phase) {
     return sinf(phase * 2.0f * M_PI);
 }
 
-static float square_wave(float phase) {
-    return (phase - floorf(phase)) < 0.5f ? 1.0f : -1.0f;
+static float triangle_wave(float phase) {
+    float p = phase - floorf(phase);
+    return (p < 0.5f) ? (4.0f * p - 1.0f) : (3.0f - 4.0f * p);
 }
 
-static float sawtooth_wave(float phase) {
-    return 2.0f * (phase - floorf(phase)) - 1.0f;
+static float pulse_wave(float phase, float duty) {
+    return (phase - floorf(phase)) < duty ? 1.0f : -1.0f;
 }
 
-static float noise_wave(void) {
-    return ((float)rand() / RAND_MAX) * 2.0f - 1.0f;
+static uint16_t lfsr_state = 1;
+static float lfsr_noise(void) {
+    uint16_t bit = ((lfsr_state >> 1) ^ lfsr_state) & 1;
+    lfsr_state = (lfsr_state >> 1) | (uint16_t)(bit << 14);
+    return (lfsr_state & 1) ? 1.0f : -1.0f;
 }
 
 // --- INSTRUMENT GENERATORS ---
 
 static float generate_kick(Channel *ch, float sample_rate) {
-    // Kick: pitched sine sweep down with envelope
     float t = ch->env_time;
-    float pitch_env = expf(-t * 15.0f);  // Fast pitch decay
-    float amp_env = expf(-t * 5.0f);     // Volume decay
+    float pitch_env = expf(-t * 15.0f);
+    float amp_env   = expf(-t * 5.0f);
 
-    float freq = 60.0f + pitch_env * 100.0f;  // Sweep from ~160Hz to 60Hz
+    float freq = 60.0f + pitch_env * 100.0f;
     ch->phase += freq / sample_rate;
 
-    return sine_wave(ch->phase) * amp_env * 0.58f;
+    float body      = sine_wave(ch->phase) * amp_env;
+    float transient = lfsr_noise() * expf(-t * 80.0f) * 0.4f;
+    return (body + transient) * 0.5f;
 }
 
 static float generate_snare(Channel *ch, float sample_rate) {
-    // Snare: filtered noise with tone
     float t = ch->env_time;
-    float amp_env = expf(-t * 20.0f);  // Fast decay
+    float amp_env = expf(-t * 20.0f);
 
-    // Mix noise with a bit of tone
-    float noise = noise_wave() * 0.7f;
+    float noise = lfsr_noise() * 0.7f;
     ch->phase += 200.0f / sample_rate;
     float tone = sine_wave(ch->phase) * 0.3f;
 
@@ -132,44 +143,41 @@ static float generate_snare(Channel *ch, float sample_rate) {
 }
 
 static float generate_hihat(Channel *ch, float sample_rate) {
-    // Hi-hat: short high-frequency noise burst
     float t = ch->env_time;
-    float amp_env = expf(-t * 35.0f);  // Very fast decay
+    float amp_env = expf(-t * 35.0f);
 
-    (void)sample_rate;  // Unused
-    return noise_wave() * amp_env * 0.123f;
+    (void)sample_rate;
+    return lfsr_noise() * amp_env * 0.12f;
 }
 
 static float generate_bass(Channel *ch, float sample_rate) {
-    // Bass: square wave with slight decay
     float t = ch->env_time;
-    float amp_env = 1.0f - expf(-t * 10.0f);  // Quick attack
-    amp_env *= expf(-t * 2.0f);  // Slow decay
-
+    int step = (int)(t * 60.0f);
+    float amp_env = (step < 4) ? (1.0f - expf(-t * 30.0f))
+                                : fmaxf(0.0f, 1.0f - (step - 3) * 0.08f);
     ch->phase += ch->freq / sample_rate;
-    return square_wave(ch->phase) * amp_env * 0.4f;
+    return triangle_wave(ch->phase) * amp_env * 0.38f;
 }
 
 static float generate_lead(Channel *ch, float sample_rate) {
-    // Lead: sawtooth + square mix with vibrato for rich synthwave sound
     float t = ch->env_time;
-    float amp_env = 1.0f - expf(-t * 15.0f);  // Fast attack
-    amp_env *= expf(-t * 0.8f);  // Longer sustain for melody
-
-    // Add subtle vibrato
-    float vibrato = sinf(t * 6.0f) * 0.003f;
-    ch->phase += (ch->freq * (1.0f + vibrato)) / sample_rate;
-
-    // Mix sawtooth (60%) and square (40%) for richer tone
-    float saw = sawtooth_wave(ch->phase) * 0.6f;
-    float square = square_wave(ch->phase) * 0.4f;
-
-    return (saw + square) * amp_env * 0.35f;
+    int step = (int)(t * 60.0f);
+    float amp_env = fmaxf(0.0f, 1.0f - step / 15.0f);
+    ch->phase += ch->freq / sample_rate;
+    return pulse_wave(ch->phase, 0.25f) * amp_env * 0.30f;
 }
 
-// --- PATTERN DATA (Hardcoded demo track) ---
+static float generate_harmony(Channel *ch, float sample_rate) {
+    float t = ch->env_time;
+    int step = (int)(t * 60.0f);
+    float amp_env = fmaxf(0.0f, 1.0f - step / 20.0f);
+    ch->phase += ch->freq / sample_rate;
+    return pulse_wave(ch->phase, 0.50f) * amp_env * 0.20f;
+}
 
-// Kick pattern – 4 bars, simple 4/4 with a small fill at the end
+// --- PATTERN DATA ---
+
+// Kick pattern – 4/4 with fill at end
 static const PatternNote kick_pattern[ROWS_PER_PATTERN] = {
     // Bar 1 (0–15)
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
@@ -189,23 +197,22 @@ static const PatternNote kick_pattern[ROWS_PER_PATTERN] = {
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
 
-    // Bar 4 (48–63) – same 4/4 plus extra kicks for a mini-fill
+    // Bar 4 (48–63) – fill at end
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_KICK, NOTE_C2}, {INST_KICK, NOTE_C2}
 };
 
-
-// Snare pattern – empty bar 1, then backbeat on 2 & 4, with a fill at the very end
+// Snare pattern – backbeat on 2 & 4 with fill
 static const PatternNote snare_pattern[ROWS_PER_PATTERN] = {
-    // Bar 1 (0–15) – no snare for a clean intro
+    // Bar 1 (0–15) – no snare for clean intro
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 
-    // Bar 2 (16–31) – snare on beats 2 & 4 (rows 20, 28)
+    // Bar 2 (16–31) – backbeat
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},  {INST_NONE, 0},
@@ -217,140 +224,186 @@ static const PatternNote snare_pattern[ROWS_PER_PATTERN] = {
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},  {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
 
-    // Bar 4 (48–63) – backbeat + last-bar fill
+    // Bar 4 (48–63) – backbeat + fill
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},  {INST_NONE, 0},
     {INST_NONE, 0}, {INST_SNARE, 0}, {INST_SNARE, 0}, {INST_NONE, 0}
 };
 
-
-// Hi-hat pattern – light groove, then a more driving last bar
+// Hi-hat pattern – light groove then driving last bar
 static const PatternNote hihat_pattern[ROWS_PER_PATTERN] = {
-    // Bar 1 (0–15) – original pattern
+    // Bars 1–3
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
 
-    // Bar 2 (16–31) – same feel
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
 
-    // Bar 3 (32–47) – same feel
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
 
-    // Bar 4 (48–63) – more driving 8th-note style hats
+    // Bar 4 – driving 8th-note hats
     {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0}
 };
 
-
-// Bass pattern – 4-bar progression with simple variations
+// Bass pattern – triangle walking roots: C → G → Am → F/C
 static const PatternNote bass_pattern[ROWS_PER_PATTERN] = {
-    // Bar 1 (0–15) – original G pattern
-    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G2},
-    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G3},
-    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G2},
-    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G3}, {INST_BASS, NOTE_G4},
+    // Bar 1 (0–15) – C: C3 C2 G2 C2
+    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_C2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_C2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 
-    // Bar 2 (16–31) – same as bar 1 (keeps the groove stable)
-    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G2},
-    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G3},
-    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G2}, {INST_BASS, NOTE_G2},
-    {INST_NONE, 0},      {INST_NONE, NOTE_G2}, {INST_BASS, NOTE_G3}, {INST_BASS, NOTE_G4},
+    // Bar 2 (16–31) – G: G2 G3 G2 D3
+    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_G3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_D3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 
-    // Bar 3 (32–47) – same pattern, transposed to F
-    {INST_NONE, 0},      {INST_NONE, NOTE_F2}, {INST_BASS, NOTE_F2}, {INST_BASS, NOTE_F2},
-    {INST_NONE, 0},      {INST_NONE, NOTE_F2}, {INST_BASS, NOTE_F2}, {INST_BASS, NOTE_F3},
-    {INST_NONE, 0},      {INST_NONE, NOTE_F2}, {INST_BASS, NOTE_F2}, {INST_BASS, NOTE_F2},
-    {INST_NONE, 0},      {INST_NONE, NOTE_F2}, {INST_BASS, NOTE_F3}, {INST_BASS, NOTE_F4},
+    // Bar 3 (32–47) – Am: A2 A3 A2 E3
+    {INST_BASS, NOTE_A2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_A3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_A2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_E3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 
-    // Bar 4 (48–63) – same pattern, transposed to E
-    {INST_NONE, 0},      {INST_NONE, NOTE_E2}, {INST_BASS, NOTE_E2}, {INST_BASS, NOTE_E2},
-    {INST_NONE, 0},      {INST_NONE, NOTE_E2}, {INST_BASS, NOTE_E2}, {INST_BASS, NOTE_E3},
-    {INST_NONE, 0},      {INST_NONE, NOTE_E2}, {INST_BASS, NOTE_E2}, {INST_BASS, NOTE_E2},
-    {INST_NONE, 0},      {INST_NONE, NOTE_E2}, {INST_BASS, NOTE_E3}, {INST_BASS, NOTE_E4}
+    // Bar 4 (48–63) – F→C: F2 F3 C3 C3
+    {INST_BASS, NOTE_F2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_F3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 };
 
-
-// Lead pattern – 4-bar evolving melody
+// Lead pattern – 25% pulse, adventure platformer melody
 static const PatternNote lead_pattern[ROWS_PER_PATTERN] = {
-    // Bar 1 (0–15) – your original motif
-    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_C4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
-
-    // Bar 2 (16–31) – variation, reaching up to C5
-    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
-
-    // Bar 3 (32–47) – more lift, up to D5 then back down
-    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    // Bar 1 (0–15) – C: E5 G5 A5 G5 E5 C5 D5 E5
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
     {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
     {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
 
-    // Bar 4 (48–63) – faster run that resolves back to C4
-    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_F4}, {INST_NONE, 0},
+    // Bar 2 (16–31) – G: C5 E5 G5 E5 D5 F5 E5 D5
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_F5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
+
+    // Bar 3 (32–47) – Am: G4 C5 E5 G5 A5 G5 E5 C5
     {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_C4}, {INST_NONE, 0}
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
+
+    // Bar 4 (48–63) – F→C: D5 E5 G5 A5 G5 E5 D5 C5
+    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
 };
 
+// Harmony pattern – 50% pulse arpeggio, one chord per beat (4 rows)
+static const PatternNote harmony_pattern[ROWS_PER_PATTERN] = {
+    // Bar 1 (0–15) – C major: C4+E4+G4
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 2 (16–31) – G5: G4+D5+G5
+    {INST_HARMONY, NOTE_G4, NOTE_D5, NOTE_G5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_G4, NOTE_D5, NOTE_G5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_G4, NOTE_D5, NOTE_G5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_G4, NOTE_D5, NOTE_G5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 3 (32–47) – A minor: A4+C5+E5
+    {INST_HARMONY, NOTE_A4, NOTE_C5, NOTE_E5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_A4, NOTE_C5, NOTE_E5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_A4, NOTE_C5, NOTE_E5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_A4, NOTE_C5, NOTE_E5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 4a (48–55) – F major: F4+A4+C5
+    {INST_HARMONY, NOTE_F4, NOTE_A4, NOTE_C5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_F4, NOTE_A4, NOTE_C5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    // Bar 4b (56–63) – C major resolve: C4+E4+G4
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+};
 
 // --- TRIGGER NOTE ON CHANNEL ---
 
-static void trigger_note(int channel_idx, InstrumentType inst, float freq) {
+static void trigger_note(int channel_idx, InstrumentType inst,
+                         float freq, float freq2, float freq3) {
     Channel *ch = &channels[channel_idx];
     ch->instrument = inst;
-    ch->freq = freq;
-    ch->phase = 0.0f;
-    ch->env_time = 0.0f;
-    ch->samples_left = SAMPLES_PER_TICK * 2;  // Note duration
+    ch->freq       = freq;
+    ch->phase      = 0.0f;
+    ch->env_time   = 0.0f;
+    ch->arp[0]     = freq;
+    ch->arp[1]     = freq2;
+    ch->arp[2]     = freq3 ? freq3 : freq;
+    ch->arp_step   = 0;
+    ch->arp_timer  = 0;
+
+    switch (inst) {
+        case INST_KICK:
+        case INST_SNARE:
+        case INST_HIHAT:
+            ch->samples_left = SAMPLES_PER_TICK * 2;
+            break;
+        case INST_BASS:
+        case INST_HARMONY:
+            ch->samples_left = SAMPLES_PER_ROW * 4 - SAMPLES_PER_TICK;
+            break;
+        case INST_LEAD:
+            ch->samples_left = SAMPLES_PER_ROW * 2 - SAMPLES_PER_TICK;
+            break;
+        default:
+            ch->samples_left = SAMPLES_PER_TICK * 2;
+            break;
+    }
 }
 
 // --- PROCESS PATTERN ROW ---
 
 static void process_row(void) {
-    const PatternNote *patterns[5] = {
+    const PatternNote *patterns[6] = {
         kick_pattern,
         snare_pattern,
         hihat_pattern,
         bass_pattern,
-        lead_pattern
+        lead_pattern,
+        harmony_pattern
     };
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 6; i++) {
         const PatternNote *note = &patterns[i][current_row];
         if (note->inst != INST_NONE) {
-            trigger_note(i, note->inst, note->freq);
+            trigger_note(i, note->inst, note->freq, note->freq2, note->freq3);
         }
     }
 
@@ -362,6 +415,15 @@ static void process_row(void) {
 static float generate_channel_sample(Channel *ch) {
     if (ch->instrument == INST_NONE || ch->samples_left <= 0) {
         return 0.0f;
+    }
+
+    // Arpeggio: cycle ch->freq through arp[] at ~64 Hz
+    if (ch->arp[1] > 0.0f) {
+        if (++ch->arp_timer >= SAMPLE_RATE / 64) {
+            ch->arp_timer = 0;
+            ch->arp_step  = (ch->arp_step + 1) % 3;
+            ch->freq      = ch->arp[ch->arp_step];
+        }
     }
 
     float sample = 0.0f;
@@ -382,6 +444,9 @@ static float generate_channel_sample(Channel *ch) {
         case INST_LEAD:
             sample = generate_lead(ch, SAMPLE_RATE);
             break;
+        case INST_HARMONY:
+            sample = generate_harmony(ch, SAMPLE_RATE);
+            break;
         default:
             break;
     }
@@ -395,13 +460,12 @@ static float generate_channel_sample(Channel *ch) {
 // --- SDL AUDIO CALLBACK ---
 
 static void audio_callback(void *userdata, Uint8 *stream, int len) {
-    (void)userdata;  // Unused
+    (void)userdata;
 
     Sint16 *buffer = (Sint16 *)stream;
     int samples = len / (sizeof(Sint16) * CHANNELS);
 
     for (int i = 0; i < samples; i++) {
-        // Advance sequencer
         if (tick_samples >= SAMPLES_PER_TICK) {
             tick_samples = 0;
             current_tick++;
@@ -413,38 +477,34 @@ static void audio_callback(void *userdata, Uint8 *stream, int len) {
         }
         tick_samples++;
 
-        // Mix all channels
         float mixed = 0.0f;
-        for (int ch = 0; ch < 5; ch++) {
+        for (int ch = 0; ch < 6; ch++) {
             mixed += generate_channel_sample(&channels[ch]);
         }
 
-        // Clamp and convert to 16-bit
         mixed = fmaxf(-1.0f, fminf(1.0f, mixed));
         Sint16 sample_16 = (Sint16)(mixed * 32767.0f);
 
-        // Write stereo
-        buffer[i * 2] = sample_16;      // Left
-        buffer[i * 2 + 1] = sample_16;  // Right
+        buffer[i * 2]     = sample_16;
+        buffer[i * 2 + 1] = sample_16;
     }
 }
 
 // --- INITIALIZE SYNTHESIZER ---
 
 void synth_init(void) {
-    // Clear channel state
     memset(channels, 0, sizeof(channels));
-    current_row = 0;
+    lfsr_state   = 1;
+    current_row  = 0;
     current_tick = 0;
     tick_samples = 0;
 
-    // Set up SDL audio
     SDL_AudioSpec want, have;
     SDL_zero(want);
-    want.freq = SAMPLE_RATE;
-    want.format = AUDIO_S16SYS;
+    want.freq     = SAMPLE_RATE;
+    want.format   = AUDIO_S16SYS;
     want.channels = CHANNELS;
-    want.samples = BUFFER_SIZE;
+    want.samples  = BUFFER_SIZE;
     want.callback = audio_callback;
 
     audio_device = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
@@ -454,7 +514,6 @@ void synth_init(void) {
         return;
     }
 
-    // Start playback
     SDL_PauseAudioDevice(audio_device, 0);
 
     printf("Synthesizer initialized: %d Hz, %d channels\n", have.freq, have.channels);

@@ -4,7 +4,7 @@ Classic demoscene effects written in C using SDL2, running at the authentic 320x
 
 ![DemoFX](docs/images/menu.png)
 
-> A collection of 27 old-school demo scene effects reminiscent of the Amiga/DOS era, featuring plasma waves, 3D graphics, particle systems, and more!
+> A collection of 33 old-school demo scene effects reminiscent of the Amiga/DOS era, featuring plasma waves, 3D graphics, particle systems, and more!
 
 ## Effects Included
 
@@ -35,6 +35,12 @@ Classic demoscene effects written in C using SDL2, running at the authentic 320x
 25. **Matrix Rain** - Classic Matrix-style falling characters
 26. **Matrix Code Rain** - Enhanced Matrix code rain effect
 27. **Lens Effect** - Magnification lens distortion effect
+28. **Voronoi** - Animated Voronoi diagram with 14 seeds moving in Lissajous patterns
+29. **Spiky Twister** - Rotating organic column with animated spike profiles
+30. **SDF Raymarcher** - Signed distance function raymarcher with smooth-blended spheres
+31. **Parallax** - Multi-layer parallax scrolling landscape with depth-based speed
+32. **3D Morph** - SDF-based raymarcher with continuously morphing 3D shapes
+33. **React-Diffuse** - Gray-Scott reaction-diffusion simulation with animated presets
 
 ## Transitions
 
@@ -53,7 +59,7 @@ Press **T** while running an effect to cycle through 10 transition types:
 
 ## Features
 
-- **Optional Chiptune Music** - Enable procedural music synthesis with `--music` flag
+- **NES/Chiptune Music** - Enable procedural music with `--music` flag: triangle bass, pulse wave leads, LFSR drums, and arpeggio harmony channels for authentic 8-bit game music vibes
 
 ## Requirements
 
