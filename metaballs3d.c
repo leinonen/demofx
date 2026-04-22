@@ -5,9 +5,9 @@
 #include <stdio.h>
 
 // Grid dimensions for marching cubes
-#define GRID_SIZE 16
+#define GRID_SIZE 24
 #define GRID_MAX (GRID_SIZE - 1)
-#define GRID_SCALE 8.0f  // World space size
+#define GRID_SCALE 12.0f  // World space size
 
 // Metaball configuration
 #define NUM_METABALLS 4
@@ -539,17 +539,21 @@ static void fill_flat_top_triangle(pixel_t *pixels, int x1, int y1, int x2, int 
             int start_x = (int)cur_x1;
             int end_x = (int)cur_x2;
 
+            float t_y = (float)(y - y1) / (y3 - y1);
+            int color_left  = c1 + (int)(t_y * (c3 - c1));
+            int color_right = c2 + (int)(t_y * (c3 - c2));
+
             if (start_x > end_x) {
-                int tmp = start_x;
-                start_x = end_x;
-                end_x = tmp;
+                int tmp = start_x; start_x = end_x; end_x = tmp;
+                tmp = color_left; color_left = color_right; color_right = tmp;
             }
 
-            float t_y = (float)(y - y1) / (y3 - y1);
-            int color = c1 + (int)(t_y * (c3 - c1));
-
+            int span = end_x - start_x;
             for (int x = start_x; x <= end_x; x++) {
                 if (x >= 0 && x < SCREEN_WIDTH) {
+                    int color = span > 0
+                        ? color_left + (int)((float)(x - start_x) / span * (color_right - color_left))
+                        : color_left;
                     pixels[y * SCREEN_WIDTH + x] = palette[color & 0xFF];
                 }
             }
@@ -576,18 +580,22 @@ static void fill_flat_bottom_triangle(pixel_t *pixels, int x1, int y1, int x2, i
             int start_x = (int)cur_x1;
             int end_x = (int)cur_x2;
 
+            float t_y = (float)(y - y1) / (y2 - y1);
+            int color_left  = c1 + (int)(t_y * (c2 - c1));
+            int color_right = c1 + (int)(t_y * (c3 - c1));
+
             if (start_x > end_x) {
-                int tmp = start_x;
-                start_x = end_x;
-                end_x = tmp;
+                int tmp = start_x; start_x = end_x; end_x = tmp;
+                tmp = color_left; color_left = color_right; color_right = tmp;
             }
 
-            float t_y = (float)(y - y1) / (y2 - y1);
-            int color1 = c1 + (int)(t_y * (c2 - c1));
-
+            int span = end_x - start_x;
             for (int x = start_x; x <= end_x; x++) {
                 if (x >= 0 && x < SCREEN_WIDTH) {
-                    pixels[y * SCREEN_WIDTH + x] = palette[color1 & 0xFF];
+                    int color = span > 0
+                        ? color_left + (int)((float)(x - start_x) / span * (color_right - color_left))
+                        : color_left;
+                    pixels[y * SCREEN_WIDTH + x] = palette[color & 0xFF];
                 }
             }
         }
@@ -673,8 +681,9 @@ void metaballs3d_init(void) {
         metaballs[i].pos.y = 0;
         metaballs[i].pos.z = 0;
         metaballs[i].radius = 2.0f;
-        metaballs[i].strength = 20.0f;  // Fixed high strength
+        metaballs[i].strength = 20.0f;
     }
+    metaballs[2].strength = 10.0f;  // one smaller ball
 
     // Set up light direction (normalized)
     light_dir.x = 0.5f;
@@ -700,8 +709,10 @@ void metaballs3d_update(pixel_t *pixels, uint32_t time) {
         return;
     }
 
-    // Clear screen
-    memset(pixels, 0, SCREEN_WIDTH * SCREEN_HEIGHT * sizeof(pixel_t));
+    // Clear screen to background color (darkest palette blue)
+    pixel_t bg = palette[0];
+    for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++)
+        pixels[i] = bg;
 
     float t = time * 0.001f;  // Convert to seconds
 
@@ -709,7 +720,7 @@ void metaballs3d_update(pixel_t *pixels, uint32_t time) {
     for (int i = 0; i < NUM_METABALLS; i++) {
         float phase = i * M_PI * 0.5f;
         float speed = 0.5f + i * 0.1f;
-        float radius = 1.0f + i * 0.2f;  // Different orbit radius for each
+        float radius = 2.0f + i * 0.5f;  // Wider orbits so balls can separate
         metaballs[i].pos.x = cosf(t * speed + phase) * radius;
         metaballs[i].pos.y = sinf(t * speed * 0.7f + phase) * radius;
         metaballs[i].pos.z = cosf(t * speed * 0.5f + phase * 1.3f) * radius;
