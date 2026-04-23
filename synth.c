@@ -16,7 +16,7 @@
 
 // Music settings
 #define BPM 150
-#define ROWS_PER_PATTERN 64 // 16 x 4
+#define ROWS_PER_PATTERN 128 // 16 x 8
 #define TICKS_PER_ROW 6
 #define ROWS_PER_BEAT 4
 #define SAMPLES_PER_TICK ((SAMPLE_RATE * 60) / (BPM * ROWS_PER_BEAT * TICKS_PER_ROW))
@@ -144,10 +144,10 @@ static float generate_snare(Channel *ch, float sample_rate) {
 
 static float generate_hihat(Channel *ch, float sample_rate) {
     float t = ch->env_time;
-    float amp_env = expf(-t * 35.0f);
+    float amp_env = expf(-t * 22.0f);
 
     (void)sample_rate;
-    return lfsr_noise() * amp_env * 0.12f;
+    return lfsr_noise() * amp_env * 0.07f;
 }
 
 static float generate_bass(Channel *ch, float sample_rate) {
@@ -156,7 +156,7 @@ static float generate_bass(Channel *ch, float sample_rate) {
     float amp_env = (step < 4) ? (1.0f - expf(-t * 30.0f))
                                 : fmaxf(0.0f, 1.0f - (step - 3) * 0.08f);
     ch->phase += ch->freq / sample_rate;
-    return triangle_wave(ch->phase) * amp_env * 0.38f;
+    return triangle_wave(ch->phase) * amp_env * 0.55f;
 }
 
 static float generate_lead(Channel *ch, float sample_rate) {
@@ -164,7 +164,7 @@ static float generate_lead(Channel *ch, float sample_rate) {
     int step = (int)(t * 60.0f);
     float amp_env = fmaxf(0.0f, 1.0f - step / 15.0f);
     ch->phase += ch->freq / sample_rate;
-    return pulse_wave(ch->phase, 0.25f) * amp_env * 0.30f;
+    return pulse_wave(ch->phase, 0.50f) * amp_env * 0.18f;
 }
 
 static float generate_harmony(Channel *ch, float sample_rate) {
@@ -201,6 +201,30 @@ static const PatternNote kick_pattern[ROWS_PER_PATTERN] = {
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_KICK, NOTE_C2}, {INST_KICK, NOTE_C2},
+
+    // Bar 5 (64–79)
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+
+    // Bar 6 (80–95)
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+
+    // Bar 7 (96–111)
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+
+    // Bar 8 (112–127) – fill at end
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_NONE, 0},       {INST_NONE, 0},
     {INST_KICK, NOTE_C2}, {INST_NONE, 0},       {INST_KICK, NOTE_C2}, {INST_KICK, NOTE_C2}
 };
 
@@ -228,6 +252,30 @@ static const PatternNote snare_pattern[ROWS_PER_PATTERN] = {
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},  {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_SNARE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+
+    // Bar 5 (64–79) – backbeat on 2 & 4
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+
+    // Bar 6 (80–95) – backbeat
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+
+    // Bar 7 (96–111) – backbeat
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+
+    // Bar 8 (112–127) – backbeat + fill
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_SNARE, 0}, {INST_NONE, 0},
+    {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_NONE, 0}, {INST_SNARE, 0}, {INST_SNARE, 0}, {INST_NONE, 0}
 };
 
@@ -253,77 +301,147 @@ static const PatternNote hihat_pattern[ROWS_PER_PATTERN] = {
     {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
+
+    // Bars 5–7 – quarter hats
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
+
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
+
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_NONE, 0},  {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0},
+
+    // Bar 8 – driving 8th-note hats
+    {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
+    {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_NONE, 0},
     {INST_HIHAT, 0}, {INST_NONE, 0},  {INST_HIHAT, 0}, {INST_HIHAT, 0}
 };
 
-// Bass pattern – triangle walking roots: C → G → Am → F/C
+// Bass pattern – backbeat 2 & 4, syncopated fills
 static const PatternNote bass_pattern[ROWS_PER_PATTERN] = {
-    // Bar 1 (0–15) – C: C3 C2 G2 C2
-    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    // Bar 1 (0–15) – C: root on 1, beat 2, and-of-2, beat 4
     {INST_BASS, NOTE_C2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_BASS, NOTE_G2}, {INST_NONE, 0},
+    {INST_NONE, 0},       {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
-    {INST_BASS, NOTE_C2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 
-    // Bar 2 (16–31) – G: G2 G3 G2 D3
-    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
-    {INST_BASS, NOTE_G3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
-    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
-    {INST_BASS, NOTE_D3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    // Bar 2 (16–31) – G: syncopated and-of-1, beat 2, beat 3, beat 4
+    {INST_NONE, 0},       {INST_NONE, 0}, {INST_BASS, NOTE_G2}, {INST_NONE, 0},
+    {INST_BASS, NOTE_G3}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_D3}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
 
-    // Bar 3 (32–47) – Am: A2 A3 A2 E3
+    // Bar 3 (32–47) – Am: root on 1, beat 2, beat 3, beat 4, and-of-4 walk
     {INST_BASS, NOTE_A2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_BASS, NOTE_A3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_BASS, NOTE_A2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
-    {INST_BASS, NOTE_E3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_E3}, {INST_NONE, 0}, {INST_BASS, NOTE_C3}, {INST_NONE, 0},
 
-    // Bar 4 (48–63) – F→C: F2 F3 C3 C3
+    // Bar 4 (48–63) – F→C: beat 2, and-of-2, beat 3, beat 4
+    {INST_NONE, 0},       {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_BASS, NOTE_F3}, {INST_NONE, 0}, {INST_BASS, NOTE_C3}, {INST_NONE, 0},
     {INST_BASS, NOTE_F2}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
-    {INST_BASS, NOTE_F3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
-    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 5 (64–79) – C: root on 1, beat 2, and-of-2, beat 4, and-of-4
+    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_E3}, {INST_NONE, 0}, {INST_BASS, NOTE_G2}, {INST_NONE, 0},
+    {INST_NONE, 0},       {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_BASS, NOTE_C2}, {INST_NONE, 0},
+
+    // Bar 6 (80–95) – Am: syncopated and-of-1, beat 2, beat 3, beat 4
+    {INST_NONE, 0},       {INST_NONE, 0}, {INST_BASS, NOTE_A2}, {INST_NONE, 0},
+    {INST_BASS, NOTE_E3}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_A2}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+
+    // Bar 7 (96–111) – F: root on 1, beat 2, and-of-2, beat 3, beat 4, and-of-4
+    {INST_BASS, NOTE_F2}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_A2}, {INST_NONE, 0}, {INST_BASS, NOTE_C3}, {INST_NONE, 0},
+    {INST_BASS, NOTE_A2}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_BASS, NOTE_F2}, {INST_NONE, 0},
+
+    // Bar 8 (112–127) – G→C: beat 1, beat 2, double on 3, double on 4
+    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_D3}, {INST_NONE, 0}, {INST_NONE, 0},       {INST_NONE, 0},
+    {INST_BASS, NOTE_G2}, {INST_NONE, 0}, {INST_BASS, NOTE_G2}, {INST_NONE, 0},
+    {INST_BASS, NOTE_C3}, {INST_NONE, 0}, {INST_BASS, NOTE_C3}, {INST_NONE, 0},
 };
 
-// Lead pattern – 25% pulse, adventure platformer melody
+// Lead pattern – 50% pulse, adventure platformer melody
 static const PatternNote lead_pattern[ROWS_PER_PATTERN] = {
-    // Bar 1 (0–15) – C: E5 G5 A5 G5 E5 C5 D5 E5
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-
-    // Bar 2 (16–31) – G: C5 E5 G5 E5 D5 F5 E5 D5
-    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_F5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
-
-    // Bar 3 (32–47) – Am: G4 C5 E5 G5 A5 G5 E5 C5
+    // Bar 1 (0–15) – C: E4 G4 A4 G4 E4 C4 D4 E4
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
     {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
 
-    // Bar 4 (48–63) – F→C: D5 E5 G5 A5 G5 E5 D5 C5
-    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_A5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_G5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_E5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_D5}, {INST_NONE, 0},
-    {INST_LEAD, NOTE_C5}, {INST_NONE, 0},
+    // Bar 2 (16–31) – G: C4 E4 G4 E4 D4 F4 E4 D4
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_F4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
+
+    // Bar 3 (32–47) – Am: G3 C4 E4 G4 A4 G4 E4 C4
+    {INST_LEAD, NOTE_G3}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0},
+
+    // Bar 4 (48–63) – F→C: D4 E4 G4 A4 G4 E4 D4 C4
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D4}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0},
+
+    // Bar 5 (64–79) – C: sparse quarter notes C4 E4 G4 E4
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 6 (80–95) – Am: A3 C4 E4 G4
+    {INST_LEAD, NOTE_A3}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_E4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 7 (96–111) – F: F4 A4 C5 A4 (builds up)
+    {INST_LEAD, NOTE_F4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_A4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 8 (112–127) – G→C: G4 D5 G4 C5 (resolve back to top)
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_D5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_LEAD, NOTE_C5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 };
 
 // Harmony pattern – 50% pulse arpeggio, one chord per beat (4 rows)
@@ -352,6 +470,30 @@ static const PatternNote harmony_pattern[ROWS_PER_PATTERN] = {
     // Bar 4b (56–63) – C major resolve: C4+E4+G4
     {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
     {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 5 (64–79) – C major: C4+E4+G4
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_C4, NOTE_E4, NOTE_G4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 6 (80–95) – A minor: A3+C4+E4
+    {INST_HARMONY, NOTE_A3, NOTE_C4, NOTE_E4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_A3, NOTE_C4, NOTE_E4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_A3, NOTE_C4, NOTE_E4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_A3, NOTE_C4, NOTE_E4}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 7 (96–111) – F major: F4+A4+C5
+    {INST_HARMONY, NOTE_F4, NOTE_A4, NOTE_C5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_F4, NOTE_A4, NOTE_C5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_F4, NOTE_A4, NOTE_C5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_F4, NOTE_A4, NOTE_C5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+
+    // Bar 8 (112–127) – G major: G4+D5+G5
+    {INST_HARMONY, NOTE_G4, NOTE_D5, NOTE_G5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_G4, NOTE_D5, NOTE_G5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_G4, NOTE_D5, NOTE_G5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
+    {INST_HARMONY, NOTE_G4, NOTE_D5, NOTE_G5}, {INST_NONE, 0}, {INST_NONE, 0}, {INST_NONE, 0},
 };
 
 // --- TRIGGER NOTE ON CHANNEL ---
