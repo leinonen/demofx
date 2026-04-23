@@ -172,7 +172,7 @@ static float generate_harmony(Channel *ch, float sample_rate) {
     int step = (int)(t * 60.0f);
     float amp_env = fmaxf(0.0f, 1.0f - step / 20.0f);
     ch->phase += ch->freq / sample_rate;
-    return pulse_wave(ch->phase, 0.50f) * amp_env * 0.20f;
+    return pulse_wave(ch->phase, 0.50f) * amp_env * 0.10f;
 }
 
 // --- PATTERN DATA ---
